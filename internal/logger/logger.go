@@ -6,18 +6,14 @@ package logger
 import (
 	"log/slog"
 	"os"
+	"strings"
 )
 
 var Log *slog.Logger
 
 // Init initializes the global logger
-func Init() {
-	// Create a new text handler that writes to stderr
-	handler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-	})
-	Log = slog.New(handler)
-	slog.SetDefault(Log)
+func Init(logLevel string) {
+	SetLevel(GetLevel(logLevel))
 }
 
 // SetLevel sets the log level
@@ -27,4 +23,20 @@ func SetLevel(level slog.Level) {
 	})
 	Log = slog.New(handler)
 	slog.SetDefault(Log)
+}
+
+// Gets the log level from the given string
+func GetLevel(level string) slog.Level {
+	switch strings.ToLower(level) {
+	case "debug":
+		return slog.LevelDebug
+	case "info":
+		return slog.LevelInfo
+	case "warn":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	}
+
+	return slog.LevelInfo
 }

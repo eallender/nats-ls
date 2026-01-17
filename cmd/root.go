@@ -4,6 +4,8 @@
 package cmd
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
 
 	"github.com/eallender/nats-ls/internal/config"
@@ -11,21 +13,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var cfg *config.Config
+var (
+	// The app configuration
+	cfg *config.Config
+	// The config file path
+	configFile string
+)
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "nats-ls",
-	Short: " ",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
+	Use:   "",
+	Short: "",
+	Long:  "",
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+	Run: func(cmd *cobra.Command, args []string) {},
 }
 
 func Execute() {
@@ -36,24 +37,32 @@ func Execute() {
 }
 
 func init() {
-	// Initialize logger
-	logger.Init()
+	// Set up flag parsing to happen before command execution
+	cobra.OnInitialize(initConfig)
 
+	// CLI Flags
+	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", "Config file path. Default: ~/.config/nats-ls/config.yaml")
+}
+
+// initConfig reads in config file and ENV variables if set.
+func initConfig() {
 	// Load configuration
 	var err error
-	cfg, err = config.Load()
+	cfg, err = config.Load(configFile)
 	if err != nil {
-		logger.Log.Error("Failed to load config", "error", err)
+		fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
+	// Initialize logger
+	logger.Init(cfg.LogLevel)
 
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.nats-ls.yaml)")
+	// Log the loaded configuration
+	configJSON, _ := json.MarshalIndent(cfg, "", "  ")
+	logger.Log.Debug("Configuration loaded", "config", string(configJSON))
 
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// Update root command from config
+	rootCmd.Use = cfg.AppMeta.NameShort
+	rootCmd.Short = cfg.AppMeta.DescriptionShort
+	rootCmd.Long = cfg.AppMeta.DescriptionLong
 }

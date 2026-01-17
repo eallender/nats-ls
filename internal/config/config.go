@@ -4,6 +4,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -12,20 +13,22 @@ import (
 
 // Config holds all configuration for nats-ls
 type Config struct {
-	// Add your configuration fields here as needed
-	// Example:
-	// Server struct {
-	// 	URL      string
-	// 	User     string
-	// 	Password string
-	// } `mapstructure:"server"`
+	AppMeta struct {
+		NameLong         string `mapstructure:"-"`
+		NameShort        string `mapstructure:"-"`
+		DescriptionShort string `mapstructure:"-"`
+		DescriptionLong  string `mapstructure:"-"`
+	} `mapstructure:"-"`
+	LogLevel string `mapstructure:"log_level"`
 }
 
 var (
-	// AppName is the application name used for config directory
-	AppName = "nats-ls"
-	// ConfigFileName is the name of the config file (without extension)
-	ConfigFileName = "config"
+	// appName is the application name used for config directory
+	appName = "nats-ls"
+	// configName is the name of the config file (without extension)
+	configName = "config"
+	// configType is the type/extension of the config file
+	configType = "yaml"
 )
 
 // GetConfigDir returns the configuration directory path
@@ -42,7 +45,7 @@ func GetConfigDir() (string, error) {
 		configHome = filepath.Join(homeDir, ".config")
 	}
 
-	configDir := filepath.Join(configHome, AppName)
+	configDir := filepath.Join(configHome, appName)
 	return configDir, nil
 }
 
@@ -62,51 +65,69 @@ func EnsureConfigDir() (string, error) {
 }
 
 // Load reads the configuration file and returns a Config struct
-func Load() (*Config, error) {
-	configDir, err := EnsureConfigDir()
-	if err != nil {
-		return nil, err
+func Load(ConfigFile string) (*Config, error) {
+	// Create a new viper instance to avoid global state issues
+	v := viper.New()
+
+	// If a config file path was provided, verify it exists
+	if ConfigFile != "" {
+		if _, err := os.Stat(ConfigFile); err != nil {
+			if os.IsNotExist(err) {
+				return nil, fmt.Errorf("config file not found: %s", ConfigFile)
+			}
+			return nil, fmt.Errorf("error accessing config file %s: %w", ConfigFile, err)
+		}
+		// Use the specific config file provided
+		v.SetConfigFile(ConfigFile)
+	} else {
+		// Use default config directory
+		_, err := EnsureConfigDir()
+		if err != nil {
+			return nil, err
+		}
+		// Use config directory and name
+		configDir, _ := GetConfigDir()
+		v.SetConfigName(configName)
+		v.SetConfigType(configType)
+		v.AddConfigPath(configDir)
 	}
 
-	// Configure viper
-	viper.SetConfigName(ConfigFileName)
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(configDir)
-
 	// Set defaults
-	setDefaults()
+	setDefaults(v)
 
 	// Read config file (it's okay if it doesn't exist yet)
-	if err := viper.ReadInConfig(); err != nil {
+	if err := v.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
 			// Config file was found but another error occurred
 			return nil, err
 		}
 		// Config file not found, will use defaults
+	} else {
+		// Log which config file was used
+		fmt.Fprintf(os.Stderr, "Using config file: %s\n", v.ConfigFileUsed())
 	}
 
 	cfg := &Config{}
-	if err := viper.Unmarshal(cfg); err != nil {
+	if err := v.Unmarshal(cfg); err != nil {
 		return nil, err
 	}
+
+	// Set app metadata from defaults (not user-configurable)
+	setMetadata(cfg)
 
 	return cfg, nil
 }
 
-// Save writes the current configuration to disk
-func Save(cfg *Config) error {
-	configDir, err := EnsureConfigDir()
-	if err != nil {
-		return err
-	}
-
-	configPath := filepath.Join(configDir, ConfigFileName+".yaml")
-	return viper.WriteConfigAs(configPath)
+// Sets default configuration values
+func setDefaults(v *viper.Viper) {
+	// Top Level Defaults
+	v.SetDefault("log_level", "info")
 }
 
-// setDefaults sets default configuration values
-func setDefaults() {
-	// Add your default values here
-	// Example:
-	// viper.SetDefault("server.url", "nats://localhost:4222")
+// Sets app Metadata that should not be accessible to the user via the config
+func setMetadata(cfg *Config) {
+	cfg.AppMeta.NameLong = appName
+	cfg.AppMeta.NameShort = "nls"
+	cfg.AppMeta.DescriptionShort = "TUI for NATS"
+	cfg.AppMeta.DescriptionLong = "TUI for inspecting message flow within a NATS server"
 }
