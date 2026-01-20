@@ -10,6 +10,7 @@ import (
 
 	"github.com/eallender/nats-ls/internal/config"
 	"github.com/eallender/nats-ls/internal/logger"
+	"github.com/eallender/nats-ls/internal/tui"
 	"github.com/spf13/cobra"
 )
 
@@ -26,7 +27,12 @@ var rootCmd = &cobra.Command{
 	Short: "",
 	Long:  "",
 
-	Run: func(cmd *cobra.Command, args []string) {},
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := tui.Run(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+	},
 }
 
 func Execute() {
