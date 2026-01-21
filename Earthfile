@@ -11,9 +11,6 @@ ci:
     BUILD +lint
     BUILD +build-all
 
-build-dev:
-    BUILD +build-darwin-arm64
-
 build-all:
     BUILD +build-linux-amd64
     BUILD +build-linux-arm64
@@ -46,7 +43,7 @@ build-darwin-arm64:
     FROM +deps
     COPY . .
     RUN GOOS=darwin GOARCH=arm64 go build -o nls-darwin-arm64 .
-    SAVE ARTIFACT nls-darwin-arm64 AS LOCAL ./build/nls
+    SAVE ARTIFACT nls-darwin-arm64
 
 lint:
     FROM +deps
