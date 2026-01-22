@@ -19,7 +19,11 @@ type Config struct {
 		DescriptionShort string `mapstructure:"-"`
 		DescriptionLong  string `mapstructure:"-"`
 	} `mapstructure:"-"`
-	LogLevel string `mapstructure:"log_level"`
+	LogLevel                    string `mapstructure:"log_level"`
+	NatsDiscoveryPendingLimit   int    `mapstructure:"nats_discovery_pending_limit"`
+	NatsDiscoveryStorageLimitMB int    `mapstructure:"nats_discovery_storage_limit_mb"`
+	NatsViewerPendingLimit      int    `mapstructure:"nats_viewer_pending_limit"`
+	NatsViewerStorageLimitMB    int    `mapstructure:"nats_viewer_storage_limit_mb"`
 }
 
 var (
@@ -122,6 +126,10 @@ func Load(ConfigFile string) (*Config, error) {
 func setDefaults(v *viper.Viper) {
 	// Top Level Defaults
 	v.SetDefault("log_level", "info")
+	v.SetDefault("nats_discovery_pending_limit", 10000)
+	v.SetDefault("nats_discovery_storage_limit_mb", 50)
+	v.SetDefault("nats_viewer_pending_limit", 10000)
+	v.SetDefault("nats_viewer_storage_limit_mb", 50)
 }
 
 // Sets app Metadata that should not be accessible to the user via the config
