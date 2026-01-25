@@ -4,6 +4,7 @@
 package config
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -41,6 +42,14 @@ var (
 	configName = "config"
 	// configType is the type/extension of the config file
 	configType = "yaml"
+)
+
+// Application metadata constants
+const (
+	AppName        = "nats-ls"
+	AppNameShort   = "nls"
+	AppDescription = "TUI for NATS"
+	AppDescriptionLong = "TUI for inspecting message flow within a NATS server"
 )
 
 // GetConfigDir returns the configuration directory path (~/.nls)
@@ -150,8 +159,44 @@ func setDefaults(v *viper.Viper) {
 
 // Sets app Metadata that should not be accessible to the user via the config
 func setMetadata(cfg *Config) {
-	cfg.AppMeta.NameLong = appName
-	cfg.AppMeta.NameShort = "nls"
-	cfg.AppMeta.DescriptionShort = "TUI for NATS"
-	cfg.AppMeta.DescriptionLong = "TUI for inspecting message flow within a NATS server"
+	cfg.AppMeta.NameLong = AppName
+	cfg.AppMeta.NameShort = AppNameShort
+	cfg.AppMeta.DescriptionShort = AppDescription
+	cfg.AppMeta.DescriptionLong = AppDescriptionLong
+}
+
+// GenerateDefaultConfigYAML generates a YAML config file with defaults and comments
+func GenerateDefaultConfigYAML() (string, error) {
+	// Create a viper instance with defaults
+	v := viper.New()
+	setDefaults(v)
+
+	// Create a map to hold the config with comments
+	var buf bytes.Buffer
+
+	buf.WriteString("# nls configuration file\n")
+	buf.WriteString("# This file is located at ~/.nls/config.yaml\n\n")
+
+	buf.WriteString("# Logging level (debug, info, warn, error)\n")
+	buf.WriteString(fmt.Sprintf("log_level: %s\n\n", v.GetString("log_level")))
+
+	buf.WriteString("# NATS connection settings\n")
+	buf.WriteString(fmt.Sprintf("nats_url: %s\n", v.GetString("nats_url")))
+	buf.WriteString(fmt.Sprintf("nats_port: %d\n", v.GetInt("nats_port")))
+	buf.WriteString("# nats_address: 127.0.0.1:4222  # Alternatively, specify the full address\n\n")
+
+	buf.WriteString("# NATS reconnection settings\n")
+	buf.WriteString(fmt.Sprintf("nats_max_reconnects: %d  # -1 = infinite reconnects\n", v.GetInt("nats_max_reconnects")))
+	buf.WriteString(fmt.Sprintf("nats_reconnect_wait_seconds: %d\n\n", v.GetInt("nats_reconnect_wait_seconds")))
+
+	buf.WriteString("# NATS discovery settings\n")
+	buf.WriteString(fmt.Sprintf("nats_discovery_pending_limit: %d\n", v.GetInt("nats_discovery_pending_limit")))
+	buf.WriteString(fmt.Sprintf("nats_discovery_storage_limit_mb: %d\n\n", v.GetInt("nats_discovery_storage_limit_mb")))
+
+	buf.WriteString("# NATS viewer settings\n")
+	buf.WriteString(fmt.Sprintf("nats_viewer_message_limit: %d\n", v.GetInt("nats_viewer_message_limit")))
+	buf.WriteString(fmt.Sprintf("nats_viewer_pending_limit: %d\n", v.GetInt("nats_viewer_pending_limit")))
+	buf.WriteString(fmt.Sprintf("nats_viewer_storage_limit_mb: %d\n", v.GetInt("nats_viewer_storage_limit_mb")))
+
+	return buf.String(), nil
 }

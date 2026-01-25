@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/eallender/nats-ls/internal/config"
 	"github.com/eallender/nats-ls/internal/logger"
@@ -17,15 +18,33 @@ import (
 var (
 	// The app configuration
 	cfg *config.Config
+	// Flag to generate default config
+	createConfig bool
 )
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "",
-	Short: "",
-	Long:  "",
+	Use:   config.AppNameShort,
+	Short: config.AppDescription,
+	Long:  config.AppDescriptionLong,
 
 	Run: func(cmd *cobra.Command, args []string) {
+		// If --generate-config flag is set, generate config and exit
+		if createConfig {
+			if err := generateDefaultConfig(); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		}
+
+		// Load configuration
+		if err := loadConfig(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+
+		// Run the TUI
 		if err := tui.Run(cfg); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
@@ -41,20 +60,16 @@ func Execute() {
 }
 
 func init() {
-	// Set up flag parsing to happen before command execution
-	cobra.OnInitialize(initConfig)
-
 	// CLI Flags
+	rootCmd.Flags().BoolVar(&createConfig, "generate-config", false, "Generate default config file at ~/.nls/config.yaml and exit")
 }
 
-// initConfig reads in config file and ENV variables if set.
-func initConfig() {
-	// Load configuration from default location (~/.nls/config.yaml)
+// loadConfig reads in config file and initializes the application
+func loadConfig() error {
 	var err error
 	cfg, err = config.Load()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to load config: %w", err)
 	}
 
 	// Initialize logger
@@ -64,8 +79,41 @@ func initConfig() {
 	configJSON, _ := json.MarshalIndent(cfg, "", "  ")
 	logger.Log.Debug("Configuration loaded", "config", string(configJSON))
 
-	// Update root command from config
-	rootCmd.Use = cfg.AppMeta.NameShort
-	rootCmd.Short = cfg.AppMeta.DescriptionShort
-	rootCmd.Long = cfg.AppMeta.DescriptionLong
+	return nil
+}
+
+func generateDefaultConfig() error {
+	// Ensure the config directory exists
+	configDir, err := config.EnsureConfigDir()
+	if err != nil {
+		return fmt.Errorf("failed to create config directory: %w", err)
+	}
+
+	configPath := filepath.Join(configDir, "config.yaml")
+
+	// Check if config already exists
+	if _, err := os.Stat(configPath); err == nil {
+		fmt.Printf("Config file already exists at: %s\n", configPath)
+		fmt.Print("Overwrite? (y/N): ")
+		var response string
+		fmt.Scanln(&response)
+		if response != "y" && response != "Y" {
+			fmt.Println("Aborted.")
+			return nil
+		}
+	}
+
+	// Generate config content from defaults using the config package
+	configContent, err := config.GenerateDefaultConfigYAML()
+	if err != nil {
+		return fmt.Errorf("failed to generate config content: %w", err)
+	}
+
+	// Write the config file
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		return fmt.Errorf("failed to write config file: %w", err)
+	}
+
+	fmt.Printf("Configuration file created at: %s\n", configPath)
+	return nil
 }
