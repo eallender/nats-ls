@@ -32,6 +32,9 @@ type Model struct {
 	commandBarActive bool
 	commandInput     string
 
+	// Navigation state
+	selectedIndex int
+
 	// NATS management
 	viewer    *monitor.Viewer
 	discovery *monitor.Discovery
@@ -158,6 +161,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q", "ctrl+c":
 			m.quitting = true
 			return m, tea.Quit
+		case "up", "k":
+			if m.selectedIndex > 0 {
+				m.selectedIndex--
+			}
+		case "down", "j":
+			if m.discovery != nil {
+				subjects := m.discovery.GetAllSubjects()
+				if m.selectedIndex < len(subjects)-1 {
+					m.selectedIndex++
+				}
+			}
 		}
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
@@ -252,20 +266,40 @@ func (m Model) renderContent() string {
 	navWidth := m.width / 3
 	infoWidth := m.width - navWidth
 
-	// Build navigation content with discovered subjects
+	// Build navigation content with discovered subjects as a table
 	var navText string
 	if m.discovery != nil {
 		subjects := m.discovery.GetAllSubjects()
 		if len(subjects) > 0 {
-			navText = "Discovered Subjects:\n\n"
-			for _, subject := range subjects {
-				navText += fmt.Sprintf("• %s (%d)\n", subject.Name, subject.MessageCount.Load())
+			// Table header
+			header := NavTableHeaderStyle.Render(
+				fmt.Sprintf("%-40s %10s", "SUBJECT", "MESSAGES"),
+			)
+			navText = header + "\n"
+
+			// Table rows
+			for i, subject := range subjects {
+				rowStyle := NavTableRowStyle
+				if i == m.selectedIndex {
+					rowStyle = NavTableSelectedRowStyle
+				}
+
+				// Truncate subject name if too long
+				subjectName := subject.Name
+				if len(subjectName) > 38 {
+					subjectName = subjectName[:35] + "..."
+				}
+
+				row := rowStyle.Render(
+					fmt.Sprintf("%-40s %10d", subjectName, subject.MessageCount.Load()),
+				)
+				navText += row + "\n"
 			}
 		} else {
-			navText = "Discovered Subjects:\n\nNo subjects discovered yet..."
+			navText = "No subjects discovered yet..."
 		}
 	} else {
-		navText = "Discovered Subjects:\n\nNot connected..."
+		navText = "Not connected..."
 	}
 
 	// Navigation panel (1/3 width)

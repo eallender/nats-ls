@@ -70,6 +70,18 @@ var (
 		Padding(1, 2).
 		BorderStyle(lipgloss.NormalBorder()).
 		BorderForeground(ColorMuted)
+
+	NavTableHeaderStyle = lipgloss.NewStyle().
+				Foreground(ColorPrimary).
+				Bold(true)
+
+	NavTableRowStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("252"))
+
+	NavTableSelectedRowStyle = lipgloss.NewStyle().
+					Foreground(lipgloss.Color("0")).
+					Background(ColorPrimary).
+					Bold(true)
 )
 
 // Info styles
