@@ -36,8 +36,6 @@ type Config struct {
 var (
 	// appName is the application name used for config directory
 	appName = "nats-ls"
-	// appDirName is the directory name in home directory
-	appDirName = ".nls"
 	// configName is the name of the config file (without extension)
 	configName = "config"
 	// configType is the type/extension of the config file
@@ -46,19 +44,19 @@ var (
 
 // Application metadata constants
 const (
-	AppName        = "nats-ls"
-	AppNameShort   = "nls"
-	AppDescription = "TUI for NATS"
+	AppName            = "nats-ls"
+	AppNameShort       = "nls"
+	AppDescription     = "TUI for NATS"
 	AppDescriptionLong = "TUI for inspecting message flow within a NATS server"
 )
 
-// GetConfigDir returns the configuration directory path (~/.nls)
+// GetConfigDir returns the configuration directory path (~/.nats-ls)
 func GetConfigDir() (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(homeDir, appDirName), nil
+	return filepath.Join(homeDir, "."+appName), nil
 }
 
 // EnsureConfigDir creates the configuration directory if it doesn't exist
@@ -76,7 +74,7 @@ func EnsureConfigDir() (string, error) {
 	return configDir, nil
 }
 
-// GetLogDir returns the log directory path (~/.nls/logs)
+// GetLogDir returns the log directory path (~/.nats-ls/logs)
 func GetLogDir() (string, error) {
 	configDir, err := GetConfigDir()
 	if err != nil {
@@ -175,7 +173,7 @@ func GenerateDefaultConfigYAML() (string, error) {
 	var buf bytes.Buffer
 
 	buf.WriteString("# nls configuration file\n")
-	buf.WriteString("# This file is located at ~/.nls/config.yaml\n\n")
+	buf.WriteString("# This file is located at ~/.nats-ls/config.yaml\n\n")
 
 	buf.WriteString("# Logging level (debug, info, warn, error)\n")
 	buf.WriteString(fmt.Sprintf("log_level: %s\n\n", v.GetString("log_level")))

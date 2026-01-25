@@ -65,7 +65,7 @@ func Execute() {
 
 func init() {
 	// CLI Flags
-	rootCmd.Flags().BoolVar(&createConfig, "generate-config", false, "Generate default config file at ~/.nls/config.yaml and exit")
+	rootCmd.Flags().BoolVar(&createConfig, "generate-config", false, "Generate default config file at ~/.nats-ls/config.yaml and exit")
 
 	// NATS connection flags (override config file)
 	rootCmd.Flags().StringVar(&natsServer, "server", "", "NATS server address (overrides config, e.g., 127.0.0.1:4222)")
