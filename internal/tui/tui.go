@@ -4,6 +4,7 @@
 package tui
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -44,8 +45,8 @@ type connectAttemptMsg struct {
 	err       error
 }
 
-// retryConnectMsg is sent after a delay to trigger a reconnection attempt
-type retryConnectMsg time.Time
+// tickMsg is sent periodically to refresh the UI and retry connections
+type tickMsg time.Time
 
 // New creates a new TUI model
 func New(nc *nats.Conn, viewer *monitor.Viewer, discovery *monitor.Discovery, serverURL string, cfg *config.Config) Model {
@@ -89,6 +90,12 @@ func (m Model) tryConnect() tea.Msg {
 	viewer := monitor.NewViewer(nc, m.config.NatsViewerMessageLimit)
 	discovery := monitor.NewDiscovery(nc)
 
+	// Start discovery to listen for all subjects
+	ctx := context.Background()
+	if err := discovery.Start(ctx, m.config.NatsDiscoveryPendingLimit, m.config.NatsDiscoveryStorageLimitMB); err != nil {
+		logger.Log.Warn("Failed to start discovery", "error", err)
+	}
+
 	return connectAttemptMsg{
 		nc:        nc,
 		viewer:    viewer,
@@ -97,10 +104,10 @@ func (m Model) tryConnect() tea.Msg {
 	}
 }
 
-// retryConnectCmd sends a retry message after a delay
-func retryConnectCmd() tea.Msg {
-	time.Sleep(5 * time.Second)
-	return retryConnectMsg(time.Now())
+// tickCmd sends a tick message after a delay to refresh the UI and retry connections
+func tickCmd() tea.Msg {
+	time.Sleep(1 * time.Second)
+	return tickMsg(time.Now())
 }
 
 // IsConnected checks if we're connected to NATS
@@ -114,7 +121,8 @@ func (m Model) Init() tea.Cmd {
 	if !m.IsConnected() {
 		return m.tryConnect
 	}
-	return nil
+	// Start the tick loop to refresh the UI
+	return tickCmd
 }
 
 // Update implements tea.Model
@@ -157,19 +165,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case connectAttemptMsg:
 		if msg.err != nil {
 			// Connection failed, retry after a delay
-			return m, retryConnectCmd
+			return m, tickCmd
 		}
 		// Connection successful, update model
 		m.nc = msg.nc
 		m.viewer = msg.viewer
 		m.discovery = msg.discovery
-		return m, nil
-	case retryConnectMsg:
-		// Time to retry connection if not connected
+		// Start the tick loop to refresh the UI
+		return m, tickCmd
+	case tickMsg:
+		// If not connected, try to reconnect
 		if !m.IsConnected() {
-			return m, m.tryConnect
+			return m, tea.Batch(m.tryConnect, tickCmd)
 		}
-		return m, nil
+		// Otherwise just refresh the UI periodically to show new subjects
+		return m, tickCmd
 	}
 	return m, nil
 }
@@ -242,12 +252,28 @@ func (m Model) renderContent() string {
 	navWidth := m.width / 3
 	infoWidth := m.width - navWidth
 
+	// Build navigation content with discovered subjects
+	var navText string
+	if m.discovery != nil {
+		subjects := m.discovery.GetAllSubjects()
+		if len(subjects) > 0 {
+			navText = "Discovered Subjects:\n\n"
+			for _, subject := range subjects {
+				navText += fmt.Sprintf("• %s (%d)\n", subject.Name, subject.MessageCount.Load())
+			}
+		} else {
+			navText = "Discovered Subjects:\n\nNo subjects discovered yet..."
+		}
+	} else {
+		navText = "Discovered Subjects:\n\nNot connected..."
+	}
+
 	// Navigation panel (1/3 width)
 	// Subtract padding (4) and borders (2)
 	navContent := NavStyle.
 		Width(navWidth).
 		Height(m.height - 10).
-		Render("Navigation\n\n• Item 1\n• Item 2\n• Item 3")
+		Render(navText)
 
 	// Info/main content panel (fills remaining space)
 	// Subtract padding (4) and borders (2)
@@ -327,6 +353,13 @@ func Run(config *config.Config) error {
 	} else {
 		viewer = monitor.NewViewer(nc, config.NatsViewerMessageLimit)
 		discovery = monitor.NewDiscovery(nc)
+
+		// Start discovery to listen for all subjects
+		ctx := context.Background()
+		if err := discovery.Start(ctx, config.NatsDiscoveryPendingLimit, config.NatsDiscoveryStorageLimitMB); err != nil {
+			logger.Log.Warn("Failed to start discovery", "error", err)
+		}
+
 		logger.Log.Info("Connected to NATS", "address", config.NatsAddress)
 	}
 
