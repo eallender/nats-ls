@@ -20,6 +20,10 @@ var (
 	cfg *config.Config
 	// Flag to generate default config
 	createConfig bool
+	// NATS connection override flags
+	natsServer string
+	natsURL    string
+	natsPort   int
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -62,6 +66,15 @@ func Execute() {
 func init() {
 	// CLI Flags
 	rootCmd.Flags().BoolVar(&createConfig, "generate-config", false, "Generate default config file at ~/.nls/config.yaml and exit")
+
+	// NATS connection flags (override config file)
+	rootCmd.Flags().StringVar(&natsServer, "server", "", "NATS server address (overrides config, e.g., 127.0.0.1:4222)")
+	rootCmd.Flags().StringVar(&natsURL, "url", "", "NATS server URL (overrides config, e.g., 127.0.0.1)")
+	rootCmd.Flags().IntVar(&natsPort, "port", 0, "NATS server port (overrides config, e.g., 4222)")
+
+	// Make --server mutually exclusive with --url and --port
+	rootCmd.MarkFlagsMutuallyExclusive("server", "url")
+	rootCmd.MarkFlagsMutuallyExclusive("server", "port")
 }
 
 // loadConfig reads in config file and initializes the application
@@ -70,6 +83,22 @@ func loadConfig() error {
 	cfg, err = config.Load()
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	// Apply CLI flag overrides
+	if natsServer != "" {
+		cfg.NatsAddress = natsServer
+	}
+	if natsURL != "" {
+		cfg.NatsURL = natsURL
+	}
+	if natsPort != 0 {
+		cfg.NatsPort = natsPort
+	}
+
+	// Reconstruct NatsAddress if URL or Port were provided
+	if (natsURL != "" || natsPort != 0) && natsServer == "" {
+		cfg.NatsAddress = fmt.Sprintf("%s:%d", cfg.NatsURL, cfg.NatsPort)
 	}
 
 	// Initialize logger
