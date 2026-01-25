@@ -20,8 +20,14 @@ type Config struct {
 		DescriptionLong  string `mapstructure:"-"`
 	} `mapstructure:"-"`
 	LogLevel                    string `mapstructure:"log_level"`
+	NatsURL                     string `mapstructure:"nats_url"`
+	NatsPort                    int    `mapstructure:"nats_port"`
+	NatsAddress                 string `mapstructure:"nats_address"`
+	NatsMaxReconnects           int    `mapstructure:"nats_max_reconnects"`
+	NatsReconnectWaitSeconds    int    `mapstructure:"nats_reconnect_wait_seconds"`
 	NatsDiscoveryPendingLimit   int    `mapstructure:"nats_discovery_pending_limit"`
 	NatsDiscoveryStorageLimitMB int    `mapstructure:"nats_discovery_storage_limit_mb"`
+	NatsViewerMessageLimit      int    `mapstructure:"nats_viewer_message_limit"`
 	NatsViewerPendingLimit      int    `mapstructure:"nats_viewer_pending_limit"`
 	NatsViewerStorageLimitMB    int    `mapstructure:"nats_viewer_storage_limit_mb"`
 }
@@ -116,6 +122,11 @@ func Load(ConfigFile string) (*Config, error) {
 		return nil, err
 	}
 
+	// If NatsAddress wasn't explicitly provided, construct it from URL and Port
+	if cfg.NatsAddress == "" {
+		cfg.NatsAddress = fmt.Sprintf("%s:%d", cfg.NatsURL, cfg.NatsPort)
+	}
+
 	// Set app metadata from defaults (not user-configurable)
 	setMetadata(cfg)
 
@@ -126,8 +137,13 @@ func Load(ConfigFile string) (*Config, error) {
 func setDefaults(v *viper.Viper) {
 	// Top Level Defaults
 	v.SetDefault("log_level", "info")
+	v.SetDefault("nats_port", 4222)
+	v.SetDefault("nats_url", "127.0.0.1")
+	v.SetDefault("nats_max_reconnects", -1) // -1 = infinite reconnects
+	v.SetDefault("nats_reconnect_wait_seconds", 2)
 	v.SetDefault("nats_discovery_pending_limit", 10000)
 	v.SetDefault("nats_discovery_storage_limit_mb", 50)
+	v.SetDefault("nats_viewer_message_limit", 100)
 	v.SetDefault("nats_viewer_pending_limit", 10000)
 	v.SetDefault("nats_viewer_storage_limit_mb", 50)
 }

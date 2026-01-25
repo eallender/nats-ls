@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Evan Allender
 
-package nats
+package monitor
 
 import (
 	"sync"

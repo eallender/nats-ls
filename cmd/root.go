@@ -28,7 +28,7 @@ var rootCmd = &cobra.Command{
 	Long:  "",
 
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := tui.Run(); err != nil {
+		if err := tui.Run(cfg); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
