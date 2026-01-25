@@ -17,8 +17,6 @@ import (
 var (
 	// The app configuration
 	cfg *config.Config
-	// The config file path
-	configFile string
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -47,14 +45,13 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	// CLI Flags
-	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", "Config file path. Default: ~/.config/nats-ls/config.yaml")
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-	// Load configuration
+	// Load configuration from default location (~/.nls/config.yaml)
 	var err error
-	cfg, err = config.Load(configFile)
+	cfg, err = config.Load()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
 		os.Exit(1)

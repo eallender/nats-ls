@@ -35,28 +35,21 @@ type Config struct {
 var (
 	// appName is the application name used for config directory
 	appName = "nats-ls"
+	// appDirName is the directory name in home directory
+	appDirName = ".nls"
 	// configName is the name of the config file (without extension)
 	configName = "config"
 	// configType is the type/extension of the config file
 	configType = "yaml"
 )
 
-// GetConfigDir returns the configuration directory path
-// following XDG Base Directory specification
+// GetConfigDir returns the configuration directory path (~/.nls)
 func GetConfigDir() (string, error) {
-	// Check for XDG_CONFIG_HOME environment variable
-	configHome := os.Getenv("XDG_CONFIG_HOME")
-	if configHome == "" {
-		// Fall back to ~/.config
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			return "", err
-		}
-		configHome = filepath.Join(homeDir, ".config")
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
 	}
-
-	configDir := filepath.Join(configHome, appName)
-	return configDir, nil
+	return filepath.Join(homeDir, appDirName), nil
 }
 
 // EnsureConfigDir creates the configuration directory if it doesn't exist
@@ -74,33 +67,43 @@ func EnsureConfigDir() (string, error) {
 	return configDir, nil
 }
 
+// GetLogDir returns the log directory path (~/.nls/logs)
+func GetLogDir() (string, error) {
+	configDir, err := GetConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(configDir, "logs"), nil
+}
+
+// EnsureLogDir creates the log directory if it doesn't exist
+func EnsureLogDir() (string, error) {
+	logDir, err := GetLogDir()
+	if err != nil {
+		return "", err
+	}
+
+	// Create directory with appropriate permissions (0755)
+	if err := os.MkdirAll(logDir, 0755); err != nil {
+		return "", err
+	}
+
+	return logDir, nil
+}
+
 // Load reads the configuration file and returns a Config struct
-func Load(ConfigFile string) (*Config, error) {
+func Load() (*Config, error) {
 	// Create a new viper instance to avoid global state issues
 	v := viper.New()
 
-	// If a config file path was provided, verify it exists
-	if ConfigFile != "" {
-		if _, err := os.Stat(ConfigFile); err != nil {
-			if os.IsNotExist(err) {
-				return nil, fmt.Errorf("config file not found: %s", ConfigFile)
-			}
-			return nil, fmt.Errorf("error accessing config file %s: %w", ConfigFile, err)
-		}
-		// Use the specific config file provided
-		v.SetConfigFile(ConfigFile)
-	} else {
-		// Use default config directory
-		_, err := EnsureConfigDir()
-		if err != nil {
-			return nil, err
-		}
-		// Use config directory and name
-		configDir, _ := GetConfigDir()
-		v.SetConfigName(configName)
-		v.SetConfigType(configType)
-		v.AddConfigPath(configDir)
+	// Ensure config directory exists and get its path
+	configDir, err := EnsureConfigDir()
+	if err != nil {
+		return nil, err
 	}
+	v.SetConfigName(configName)
+	v.SetConfigType(configType)
+	v.AddConfigPath(configDir)
 
 	// Set defaults
 	setDefaults(v)
@@ -112,9 +115,6 @@ func Load(ConfigFile string) (*Config, error) {
 			return nil, err
 		}
 		// Config file not found, will use defaults
-	} else {
-		// Log which config file was used
-		fmt.Fprintf(os.Stderr, "Using config file: %s\n", v.ConfigFileUsed())
 	}
 
 	cfg := &Config{}
