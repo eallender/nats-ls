@@ -6,6 +6,8 @@ package tui
 import (
 	"context"
 	"fmt"
+	"sort"
+	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -34,6 +36,7 @@ type Model struct {
 
 	// Navigation state
 	selectedIndex int
+	navPath       []string // Current navigation path for hierarchical subject browsing
 
 	// NATS management
 	viewer    *monitor.Viewer
@@ -118,6 +121,80 @@ func (m Model) IsConnected() bool {
 	return m.nc != nil && m.nc.IsConnected()
 }
 
+// SubjectNode represents a subject or subject prefix in the hierarchy
+type SubjectNode struct {
+	Name         string
+	IsLeaf       bool // true if this is a complete subject, false if it's a prefix
+	MessageCount int64
+}
+
+// getSubjectsAtCurrentLevel returns the subjects/prefixes at the current navigation level
+func (m Model) getSubjectsAtCurrentLevel() []SubjectNode {
+	if m.discovery == nil {
+		return nil
+	}
+
+	subjects := m.discovery.GetAllSubjects()
+	if len(subjects) == 0 {
+		return nil
+	}
+
+	// Build the current prefix from navPath
+	currentPrefix := strings.Join(m.navPath, ".")
+	if currentPrefix != "" {
+		currentPrefix += "."
+	}
+
+	// Group subjects by the next level
+	nodeMap := make(map[string]*SubjectNode)
+
+	for _, subject := range subjects {
+		// Skip subjects that don't match our current prefix
+		if currentPrefix != "" && !strings.HasPrefix(subject.Name, currentPrefix) {
+			continue
+		}
+
+		// Get the part after the current prefix
+		remainder := strings.TrimPrefix(subject.Name, currentPrefix)
+
+		// Split by "." to get the next level
+		parts := strings.Split(remainder, ".")
+
+		if len(parts) > 0 && parts[0] != "" {
+			nextLevel := parts[0]
+			isLeaf := len(parts) == 1
+
+			if existing, ok := nodeMap[nextLevel]; ok {
+				// Aggregate message counts
+				existing.MessageCount += subject.MessageCount.Load()
+				// If any subject is a leaf, mark it as such
+				if isLeaf {
+					existing.IsLeaf = true
+				}
+			} else {
+				nodeMap[nextLevel] = &SubjectNode{
+					Name:         nextLevel,
+					IsLeaf:       isLeaf,
+					MessageCount: subject.MessageCount.Load(),
+				}
+			}
+		}
+	}
+
+	// Convert map to slice
+	var nodes []SubjectNode
+	for _, node := range nodeMap {
+		nodes = append(nodes, *node)
+	}
+
+	// Sort alphabetically to maintain consistent order
+	sort.Slice(nodes, func(i, j int) bool {
+		return nodes[i].Name < nodes[j].Name
+	})
+
+	return nodes
+}
+
 // Init implements tea.Model
 func (m Model) Init() tea.Cmd {
 	// If not connected, start trying to connect
@@ -166,11 +243,26 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.selectedIndex--
 			}
 		case "down", "j":
-			if m.discovery != nil {
-				subjects := m.discovery.GetAllSubjects()
-				if m.selectedIndex < len(subjects)-1 {
-					m.selectedIndex++
+			nodes := m.getSubjectsAtCurrentLevel()
+			if m.selectedIndex < len(nodes)-1 {
+				m.selectedIndex++
+			}
+		case "enter":
+			// Drill down into the selected subject
+			nodes := m.getSubjectsAtCurrentLevel()
+			if len(nodes) > 0 && m.selectedIndex < len(nodes) {
+				selectedNode := nodes[m.selectedIndex]
+				// Only drill down if it's not a leaf (i.e., has children)
+				if !selectedNode.IsLeaf {
+					m.navPath = append(m.navPath, selectedNode.Name)
+					m.selectedIndex = 0
 				}
+			}
+		case "esc":
+			// Go back up one level
+			if len(m.navPath) > 0 {
+				m.navPath = m.navPath[:len(m.navPath)-1]
+				m.selectedIndex = 0
 			}
 		}
 	case tea.WindowSizeMsg:
@@ -228,6 +320,7 @@ func (m Model) renderHeader() string {
 	controls := HeaderControlStyle.Render(lipgloss.JoinVertical(
 		lipgloss.Left,
 		"<enter>",
+		"<esc>",
 		"<↑↓>",
 		"<l>",
 		"<:>",
@@ -237,7 +330,8 @@ func (m Model) renderHeader() string {
 
 	controlsInfo := HeaderControlStyleInfo.Render(lipgloss.JoinVertical(
 		lipgloss.Left,
-		"inspect",
+		"drill down",
+		"go back",
 		"navigate",
 		"logs",
 		"filter",
@@ -266,44 +360,64 @@ func (m Model) renderContent() string {
 	navWidth := m.width / 3
 	infoWidth := m.width - navWidth
 
-	// Build navigation content with discovered subjects as a table
+	// Build navigation content with hierarchical subjects as a table
 	var navText string
+
 	if m.discovery != nil {
-		subjects := m.discovery.GetAllSubjects()
-		if len(subjects) > 0 {
+		// Add path as a title line if drilled down
+		if len(m.navPath) > 0 {
+			pathDisplay := strings.Join(m.navPath, ".") + " >"
+			// Create a styled title that looks like it's part of the border
+			titleLen := len(pathDisplay)
+			contentWidth := navWidth - 8 // Account for padding and borders
+			leftDashes := (contentWidth - titleLen - 2) / 2
+			rightDashes := contentWidth - titleLen - 2 - leftDashes
+
+			titleLine := lipgloss.NewStyle().Foreground(ColorMuted).Render(
+				strings.Repeat("─", leftDashes) + " " + pathDisplay + " " + strings.Repeat("─", rightDashes),
+			)
+			navText = titleLine + "\n\n"
+		}
+
+		nodes := m.getSubjectsAtCurrentLevel()
+		if len(nodes) > 0 {
 			// Table header
 			header := NavTableHeaderStyle.Render(
 				fmt.Sprintf("%-40s %10s", "SUBJECT", "MESSAGES"),
 			)
-			navText = header + "\n"
+			navText += header + "\n"
 
 			// Table rows
-			for i, subject := range subjects {
+			for i, node := range nodes {
 				rowStyle := NavTableRowStyle
 				if i == m.selectedIndex {
 					rowStyle = NavTableSelectedRowStyle
 				}
 
-				// Truncate subject name if too long
-				subjectName := subject.Name
-				if len(subjectName) > 38 {
-					subjectName = subjectName[:35] + "..."
+				// Display name with indicator for directories vs leaves
+				displayName := node.Name
+				if !node.IsLeaf {
+					displayName += " >"
+				}
+
+				// Truncate if too long
+				if len(displayName) > 38 {
+					displayName = displayName[:35] + "..."
 				}
 
 				row := rowStyle.Render(
-					fmt.Sprintf("%-40s %10d", subjectName, subject.MessageCount.Load()),
+					fmt.Sprintf("%-40s %10d", displayName, node.MessageCount),
 				)
 				navText += row + "\n"
 			}
 		} else {
-			navText = "No subjects discovered yet..."
+			navText += "No subjects discovered yet..."
 		}
 	} else {
 		navText = "Not connected..."
 	}
 
 	// Navigation panel (1/3 width)
-	// Subtract padding (4) and borders (2)
 	navContent := NavStyle.
 		Width(navWidth).
 		Height(m.height - 10).
