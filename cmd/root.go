@@ -102,7 +102,9 @@ func loadConfig() error {
 	}
 
 	// Initialize logger
-	logger.Init(cfg.LogLevel)
+	if err := logger.Init(cfg.LogLevel); err != nil {
+		return fmt.Errorf("failed to initialize logger: %w", err)
+	}
 
 	// Log the loaded configuration
 	configJSON, _ := json.MarshalIndent(cfg, "", "  ")
