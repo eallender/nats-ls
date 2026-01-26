@@ -1,0 +1,110 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Evan Allender
+
+package tui
+
+import "github.com/charmbracelet/lipgloss"
+
+// Layout constants
+const (
+	// Minimum terminal dimensions
+	MinTerminalWidth  = 80
+	MinContentHeight  = 5
+	MinNavWidth       = 20
+	MinInfoWidth      = 30
+
+	// Layout proportions (0.0 to 1.0)
+	NavWidthRatio = 0.33 // Navigation panel takes 33% of width
+)
+
+// Layout provides helpers for responsive TUI layout calculations
+type Layout struct {
+	TerminalWidth  int
+	TerminalHeight int
+}
+
+// NewLayout creates a layout helper for the given terminal dimensions
+func NewLayout(width, height int) Layout {
+	return Layout{
+		TerminalWidth:  width,
+		TerminalHeight: height,
+	}
+}
+
+// SplitHorizontal splits width into two parts based on ratio
+// Returns (left width, right width)
+func (l Layout) SplitHorizontal(ratio float64) (int, int) {
+	left := int(float64(l.TerminalWidth) * ratio)
+	right := l.TerminalWidth - left
+
+	// Enforce minimums
+	if left < MinNavWidth {
+		left = MinNavWidth
+	}
+	if right < MinInfoWidth {
+		right = MinInfoWidth
+	}
+
+	return left, right
+}
+
+// IsNarrow returns true if terminal width is below minimum for full layout
+func (l Layout) IsNarrow() bool {
+	return l.TerminalWidth < MinTerminalWidth
+}
+
+// MaxContentWidth returns the maximum width available for content
+// accounting for the given style's padding and borders
+func MaxContentWidth(totalWidth int, style lipgloss.Style) int {
+	// Get horizontal frame size (padding + borders)
+	// GetPadding returns: top, right, bottom, left
+	_, right, _, left := style.GetPadding()
+
+	hBorder := 0
+	if style.GetBorderLeft() {
+		hBorder++
+	}
+	if style.GetBorderRight() {
+		hBorder++
+	}
+
+	frameSize := left + right + hBorder
+	contentWidth := totalWidth - frameSize
+
+	if contentWidth < 1 {
+		contentWidth = 1
+	}
+
+	return contentWidth
+}
+
+// GetFrameHeight returns the vertical frame size (padding + borders) for a style
+func GetFrameHeight(style lipgloss.Style) int {
+	// Get vertical padding
+	// GetPadding returns: top, right, bottom, left
+	top, _, bottom, _ := style.GetPadding()
+
+	// Get vertical borders
+	vBorder := 0
+	if style.GetBorderTop() {
+		vBorder++
+	}
+	if style.GetBorderBottom() {
+		vBorder++
+	}
+
+	return top + bottom + vBorder
+}
+
+// MaxContentHeight returns the maximum height available for content
+// accounting for the given style's padding and borders
+func MaxContentHeight(totalHeight int, style lipgloss.Style) int {
+	frameSize := GetFrameHeight(style)
+	contentHeight := totalHeight - frameSize
+
+	if contentHeight < 1 {
+		contentHeight = 1
+	}
+
+	return contentHeight
+}

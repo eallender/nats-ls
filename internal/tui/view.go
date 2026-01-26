@@ -16,10 +16,27 @@ func (m Model) View() string {
 		return "Goodbye!\n"
 	}
 
-	// Build the complete UI
+	// Wait for initial window size before rendering
+	if m.width == 0 || m.height == 0 {
+		return "Initializing..."
+	}
+
+	// Render header and command bar first to measure their heights
 	header := m.renderHeader()
 	commandBar := m.renderCommandBar()
-	content := m.renderContent()
+
+	// Calculate available height for content based on actual component heights
+	headerHeight := lipgloss.Height(header)
+	commandBarHeight := lipgloss.Height(commandBar)
+	contentHeight := m.height - headerHeight - commandBarHeight
+
+	// Ensure we don't create content that's too tall
+	if contentHeight < 1 {
+		contentHeight = 1
+	}
+
+	// Build content with calculated height
+	content := m.renderContentWithHeight(contentHeight)
 
 	// Combine all sections
 	if m.commandBarActive {
@@ -30,6 +47,22 @@ func (m Model) View() string {
 
 // renderHeader creates the header bar with app info and status
 func (m Model) renderHeader() string {
+	// Handle very small widths with simplified header
+	layout := NewLayout(m.width, m.height)
+	if layout.IsNarrow() {
+		status := "●"
+		if m.IsConnected() {
+			status = HeaderConnectedStyle.Render(status)
+		} else {
+			status = HeaderDisconnectedStyle.Render(status)
+		}
+		simpleHeader := fmt.Sprintf("NLS %s | q:quit", status)
+		return HeaderContainerStyle.
+			Width(m.width).
+			Padding(0, 1).
+			Render(simpleHeader)
+	}
+
 	// ASCII art logo
 	logo := HeaderAppNameStyle.Render(Logo)
 
@@ -92,11 +125,25 @@ func (m Model) renderHeader() string {
 		Render(headerContent)
 }
 
-// renderContent creates the main content area with nav and info panels
-func (m Model) renderContent() string {
-	// Calculate widths: Nav = 1/3, Info = fills remaining space
-	navWidth := m.width / 3
-	infoWidth := m.width - navWidth
+// renderContentWithHeight creates the main content area with nav and info panels
+func (m Model) renderContentWithHeight(contentHeight int) string {
+	// Create layout helper
+	layout := NewLayout(m.width, m.height)
+
+	// Enforce minimum content height (must account for frame overhead)
+	// The content boxes need frame space (padding+borders) plus some content
+	frameHeight := GetFrameHeight(NavStyle) // NavStyle and InfoStyle have same frame
+	minRequiredHeight := MinContentHeight + frameHeight
+	if contentHeight < minRequiredHeight {
+		contentHeight = minRequiredHeight
+	}
+
+	// Split width using percentage ratio (33% nav, 67% info)
+	navWidth, infoWidth := layout.SplitHorizontal(NavWidthRatio)
+
+	// Calculate content widths (accounting for padding and borders)
+	navContentWidth := MaxContentWidth(navWidth, NavStyle)
+	infoContentWidth := MaxContentWidth(infoWidth, InfoStyle)
 
 	// Build navigation content with hierarchical subjects as a table
 	var navText string
@@ -107,9 +154,15 @@ func (m Model) renderContent() string {
 			pathDisplay := strings.Join(m.navPath, ".") + " >"
 			// Create a styled title that looks like it's part of the border
 			titleLen := len(pathDisplay)
-			contentWidth := navWidth - 8 // Account for padding and borders
-			leftDashes := (contentWidth - titleLen - 2) / 2
-			rightDashes := contentWidth - titleLen - 2 - leftDashes
+
+			leftDashes := (navContentWidth - titleLen - 2) / 2
+			if leftDashes < 0 {
+				leftDashes = 0
+			}
+			rightDashes := navContentWidth - titleLen - 2 - leftDashes
+			if rightDashes < 0 {
+				rightDashes = 0
+			}
 
 			titleLine := lipgloss.NewStyle().Foreground(ColorMuted).Render(
 				strings.Repeat("─", leftDashes) + " " + pathDisplay + " " + strings.Repeat("─", rightDashes),
@@ -155,17 +208,20 @@ func (m Model) renderContent() string {
 		navText = "Not connected..."
 	}
 
-	// Navigation panel (1/3 width)
+	// Calculate inner content heights (accounting for padding and borders dynamically)
+	navContentHeight := MaxContentHeight(contentHeight, NavStyle)
+	infoContentHeight := MaxContentHeight(contentHeight, InfoStyle)
+
+	// Navigation panel - use explicit Width and Height for proper sizing
 	navContent := NavStyle.
-		Width(navWidth).
-		Height(m.height - 10).
+		Width(navContentWidth).
+		Height(navContentHeight).
 		Render(navText)
 
-	// Info/main content panel (fills remaining space)
-	// Subtract padding (4) and borders (2)
+	// Info panel - use explicit Width and Height for proper sizing
 	infoContent := InfoStyle.
-		Width(infoWidth - 6).
-		Height(m.height - 10).
+		Width(infoContentWidth).
+		Height(infoContentHeight).
 		Render("Info Panel\n\nContent goes here")
 
 	// Combine navigation and info horizontally
