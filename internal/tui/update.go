@@ -15,7 +15,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.commandBarActive {
 			switch msg.String() {
 			case "enter":
-				// TODO: Process command in m.commandInput
+				// TODO: Implement command processing (e.g., filter subjects by pattern)
+				// For now, just clear the command bar
 				m.commandBarActive = false
 				m.commandInput = ""
 			case "esc":

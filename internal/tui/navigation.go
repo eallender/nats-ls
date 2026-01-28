@@ -6,6 +6,7 @@ package tui
 import (
 	"sort"
 	"strings"
+	"time"
 )
 
 // SubjectNode represents a subject or subject prefix in the hierarchy
@@ -13,6 +14,8 @@ type SubjectNode struct {
 	Name         string
 	IsLeaf       bool // true if this is a complete subject, false if it's a prefix
 	MessageCount int64
+	LastSeen     time.Time
+	FirstSeen    time.Time
 }
 
 // getSubjectsAtCurrentLevel returns the subjects/prefixes at the current navigation level
@@ -51,6 +54,8 @@ func (m Model) getSubjectsAtCurrentLevel() []SubjectNode {
 			nextLevel := parts[0]
 			isLeaf := len(parts) == 1
 
+			lastSeen := subject.LastSeen.Load().(time.Time)
+
 			if existing, ok := nodeMap[nextLevel]; ok {
 				// Aggregate message counts
 				existing.MessageCount += subject.MessageCount.Load()
@@ -58,11 +63,21 @@ func (m Model) getSubjectsAtCurrentLevel() []SubjectNode {
 				if isLeaf {
 					existing.IsLeaf = true
 				}
+				// Track the most recent LastSeen
+				if lastSeen.After(existing.LastSeen) {
+					existing.LastSeen = lastSeen
+				}
+				// Track the earliest FirstSeen
+				if subject.FirstSeen.Before(existing.FirstSeen) {
+					existing.FirstSeen = subject.FirstSeen
+				}
 			} else {
 				nodeMap[nextLevel] = &SubjectNode{
 					Name:         nextLevel,
 					IsLeaf:       isLeaf,
 					MessageCount: subject.MessageCount.Load(),
+					LastSeen:     lastSeen,
+					FirstSeen:    subject.FirstSeen,
 				}
 			}
 		}
