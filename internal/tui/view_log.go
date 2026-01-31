@@ -150,8 +150,17 @@ func (m Model) renderLogViewWithHeight(contentHeight int) string {
 				newerCount = 0
 			}
 
+			// Check if paused
+			isPaused := m.viewer != nil && m.viewer.IsPaused()
+
 			var scrollInfo string
-			if newerCount == 0 {
+			if isPaused {
+				if newerCount == 0 {
+					scrollInfo = "── PAUSED ──"
+				} else {
+					scrollInfo = fmt.Sprintf("── PAUSED │ %d newer ↓ ──", newerCount)
+				}
+			} else if newerCount == 0 {
 				scrollInfo = "── latest ──"
 			} else {
 				scrollInfo = fmt.Sprintf("── %d newer ↓ ──", newerCount)

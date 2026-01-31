@@ -11,10 +11,12 @@ import (
 )
 
 type Viewer struct {
-	nc       *nats.Conn
-	sub      *nats.Subscription
-	mu       sync.Mutex
-	messages *MessageStore
+	nc             *nats.Conn
+	sub            *nats.Subscription
+	mu             sync.Mutex
+	messages       *MessageStore
+	paused         bool
+	pausedSubject  string // Subject to resubscribe to when resuming
 }
 
 func NewViewer(nc *nats.Conn, maxMessages int) *Viewer {
@@ -37,6 +39,9 @@ func (v *Viewer) Watch(subject string) error {
 		v.sub.Unsubscribe()
 		v.sub = nil
 	}
+
+	v.paused = false
+	v.pausedSubject = subject
 
 	if subject == "" {
 		return nil
@@ -78,4 +83,49 @@ func (v *Viewer) GetMessages() []Message {
 // GetMessageCount returns the number of stored messages
 func (v *Viewer) GetMessageCount() int {
 	return v.messages.Count()
+}
+
+// Pause temporarily stops receiving new messages without clearing the buffer
+func (v *Viewer) Pause() {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
+	if v.paused || v.sub == nil {
+		return
+	}
+
+	v.paused = true
+	v.sub.Unsubscribe()
+	v.sub = nil
+	logger.Log.Debug("Viewer paused")
+}
+
+// Resume restarts receiving messages after a pause
+func (v *Viewer) Resume() error {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
+	if !v.paused || v.pausedSubject == "" {
+		return nil
+	}
+
+	var err error
+	v.sub, err = v.nc.Subscribe(v.pausedSubject, func(msg *nats.Msg) {
+		v.messages.Store(msg)
+		logger.Log.Debug("Message received", "subject", msg.Subject, "size", len(msg.Data))
+	})
+	if err != nil {
+		return err
+	}
+
+	v.paused = false
+	logger.Log.Debug("Viewer resumed")
+	return nil
+}
+
+// IsPaused returns whether the viewer is currently paused
+func (v *Viewer) IsPaused() bool {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	return v.paused
 }

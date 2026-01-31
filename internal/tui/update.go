@@ -220,6 +220,18 @@ func (m Model) handleLogViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// Jump to bottom (most recent messages)
 		m.logScrollOffset = 0
 		m.logSelectedIndex = 0
+	case "s":
+		// Toggle pause/resume autoscroll
+		if m.viewer != nil {
+			if m.viewer.IsPaused() {
+				m.viewer.Resume()
+				// Reset to latest messages when resuming
+				m.logScrollOffset = 0
+				m.logSelectedIndex = 0
+			} else {
+				m.viewer.Pause()
+			}
+		}
 	}
 	return m, nil
 }
@@ -279,6 +291,15 @@ func (m Model) handleMessageInspectKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if m.inspectedMessageIndex < len(messages)-1 {
 				m.inspectedMessageIndex++
 				m.inspectScrollOffset = 0
+			}
+		}
+	case "s":
+		// Toggle pause/resume
+		if m.viewer != nil {
+			if m.viewer.IsPaused() {
+				m.viewer.Resume()
+			} else {
+				m.viewer.Pause()
 			}
 		}
 	}

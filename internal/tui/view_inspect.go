@@ -101,9 +101,20 @@ func (m Model) renderMessageInspectWithHeight(contentHeight int) string {
 
 			inspectText = strings.Join(visibleLines, "\n")
 
+			// Check if paused
+			isPaused := m.viewer != nil && m.viewer.IsPaused()
+
 			// Add scroll indicator
 			var scrollInfo string
-			if maxScroll == 0 {
+			if isPaused {
+				if maxScroll == 0 {
+					scrollInfo = fmt.Sprintf("── PAUSED │ message %d of %d ──", m.inspectedMessageIndex+1, len(messages))
+				} else {
+					scrollInfo = fmt.Sprintf("── PAUSED │ message %d of %d │ line %d-%d of %d ──",
+						m.inspectedMessageIndex+1, len(messages),
+						m.inspectScrollOffset+1, endIdx, len(allLines))
+				}
+			} else if maxScroll == 0 {
 				scrollInfo = fmt.Sprintf("── message %d of %d ──", m.inspectedMessageIndex+1, len(messages))
 			} else {
 				scrollInfo = fmt.Sprintf("── message %d of %d │ line %d-%d of %d ──",

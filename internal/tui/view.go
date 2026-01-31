@@ -97,7 +97,16 @@ func (m Model) renderHeader() string {
 	var controls1, controlsInfo1, controls2, controlsInfo2 string
 
 	if m.viewMode == ViewModeMessageInspect {
-		// Message inspect view controls
+		// Message inspect view controls - show pause/resume based on current state
+		var pauseKey, pauseLabel string
+		if m.viewer != nil && m.viewer.IsPaused() {
+			pauseKey = "<s>"
+			pauseLabel = "resume"
+		} else {
+			pauseKey = "<s>"
+			pauseLabel = "pause"
+		}
+
 		controls1 = HeaderControlStyle.Render(lipgloss.JoinVertical(
 			lipgloss.Left,
 			"",
@@ -120,19 +129,28 @@ func (m Model) renderHeader() string {
 				lipgloss.Left,
 				"",
 				"<g/G>",
+				pauseKey,
 				"<q>",
-				"",
 			))
 
 		controlsInfo2 = HeaderControlStyleInfo.Render(lipgloss.JoinVertical(
 			lipgloss.Left,
 			"",
 			"top/bottom",
+			pauseLabel,
 			"quit",
-			"",
 		))
 	} else if m.viewMode == ViewModeLog {
-		// Log view controls
+		// Log view controls - show pause/resume based on current state
+		var pauseKey, pauseLabel string
+		if m.viewer != nil && m.viewer.IsPaused() {
+			pauseKey = "<s>"
+			pauseLabel = "resume"
+		} else {
+			pauseKey = "<s>"
+			pauseLabel = "pause"
+		}
+
 		controls1 = HeaderControlStyle.Render(lipgloss.JoinVertical(
 			lipgloss.Left,
 			"",
@@ -155,16 +173,16 @@ func (m Model) renderHeader() string {
 				lipgloss.Left,
 				"",
 				"<g/G>",
+				pauseKey,
 				"<q>",
-				"",
 			))
 
 		controlsInfo2 = HeaderControlStyleInfo.Render(lipgloss.JoinVertical(
 			lipgloss.Left,
 			"",
 			"top/bottom",
+			pauseLabel,
 			"quit",
-			"",
 		))
 	} else {
 		// Browse view controls
