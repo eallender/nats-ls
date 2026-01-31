@@ -24,9 +24,7 @@ var (
 
 // Header styles
 var (
-	HeaderContainerStyle = lipgloss.NewStyle().
-				BorderStyle(lipgloss.NormalBorder()).
-				BorderBottom(true)
+	HeaderContainerStyle = lipgloss.NewStyle()
 
 	HeaderAppNameStyle = lipgloss.NewStyle().
 				Bold(true).
@@ -67,7 +65,10 @@ var (
 // Navigation styles
 var (
 	NavStyle = lipgloss.NewStyle().
-		Padding(1, 2).
+		PaddingTop(0).
+		PaddingBottom(1).
+		PaddingLeft(2).
+		PaddingRight(2).
 		BorderStyle(lipgloss.NormalBorder()).
 		BorderForeground(ColorMuted)
 
