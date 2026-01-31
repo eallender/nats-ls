@@ -142,11 +142,19 @@ func (m Model) renderLogViewWithHeight(contentHeight int) string {
 			}
 
 			// Show scroll indicator on its own line, centered
+			// Calculate how many messages are newer than the selected one
+			// The selected message's actual index is: endIdx - 1 - m.logSelectedIndex
+			selectedActualIdx := endIdx - 1 - m.logSelectedIndex
+			newerCount := len(messages) - 1 - selectedActualIdx
+			if newerCount < 0 {
+				newerCount = 0
+			}
+
 			var scrollInfo string
-			if m.logScrollOffset == 0 {
+			if newerCount == 0 {
 				scrollInfo = "── latest ──"
 			} else {
-				scrollInfo = fmt.Sprintf("── %d newer ↓ ──", m.logScrollOffset)
+				scrollInfo = fmt.Sprintf("── %d newer ↓ ──", newerCount)
 			}
 			// Center the scroll info
 			scrollInfoWidth := len(scrollInfo)
