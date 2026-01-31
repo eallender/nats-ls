@@ -86,13 +86,12 @@ func (m Model) renderHeader() string {
 
 	status := statusStyle.Render(statusText)
 	server := HeaderServerStyle.Render(fmt.Sprintf("Server: %s", m.serverURL))
-	msgCount := HeaderStatsStyle.Render(fmt.Sprintf("Messages: %d", m.messageCount))
 	statusInfo := HeaderStatusInfoStyle.Render(lipgloss.JoinVertical(
 		lipgloss.Left,
 		"",
 		status,
 		server,
-		msgCount,
+		"",
 	))
 
 	var controls1, controlsInfo1, controls2, controlsInfo2 string
@@ -145,8 +144,8 @@ func (m Model) renderHeader() string {
 		controlsInfo1 = HeaderControlStyleInfo.Render(lipgloss.JoinVertical(
 			lipgloss.Left,
 			"",
-			"drill down",
-			"go back",
+			"select",
+			"back",
 			"navigate",
 		))
 
@@ -530,8 +529,19 @@ func (m Model) renderLogViewWithHeight(contentHeight int) string {
 				}
 			}
 
-			// Show scroll indicator on its own line
-			scrollInfo := fmt.Sprintf("── %d/%d messages ──", endIdx, len(messages))
+			// Show scroll indicator on its own line, centered
+			var scrollInfo string
+			if m.logScrollOffset == 0 {
+				scrollInfo = "── latest ──"
+			} else {
+				scrollInfo = fmt.Sprintf("── %d newer ↓ ──", m.logScrollOffset)
+			}
+			// Center the scroll info
+			scrollInfoWidth := len(scrollInfo)
+			if scrollInfoWidth < contentWidth {
+				padding := (contentWidth - scrollInfoWidth) / 2
+				scrollInfo = strings.Repeat(" ", padding) + scrollInfo
+			}
 			logText += "\n" + LogTimestampStyle.Render(scrollInfo)
 		}
 	}

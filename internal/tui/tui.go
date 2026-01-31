@@ -29,10 +29,9 @@ type Model struct {
 	quitting bool
 
 	// Connection state
-	nc           *nats.Conn
-	serverURL    string
-	messageCount int
-	config       *config.Config
+	nc        *nats.Conn
+	serverURL string
+	config    *config.Config
 
 	// Command bar state
 	commandBarActive bool
@@ -43,9 +42,9 @@ type Model struct {
 	navPath       []string // Current navigation path for hierarchical subject browsing
 
 	// View mode
-	viewMode         ViewMode
-	logScrollOffset  int    // Scroll offset for log view
-	watchingSubject  string // The subject currently being watched in log view
+	viewMode        ViewMode
+	logScrollOffset int    // Scroll offset for log view
+	watchingSubject string // The subject currently being watched in log view
 
 	// NATS management
 	viewer    *monitor.Viewer
@@ -66,12 +65,11 @@ type tickMsg time.Time
 // New creates a new TUI model
 func New(nc *nats.Conn, viewer *monitor.Viewer, discovery *monitor.Discovery, serverURL string, cfg *config.Config) Model {
 	return Model{
-		nc:           nc,
-		serverURL:    serverURL,
-		messageCount: 0,
-		viewer:       viewer,
-		discovery:    discovery,
-		config:       cfg,
+		nc:        nc,
+		serverURL: serverURL,
+		viewer:    viewer,
+		discovery: discovery,
+		config:    cfg,
 	}
 }
 
