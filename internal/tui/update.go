@@ -35,6 +35,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
+		// Message inspect mode key handling
+		if m.viewMode == ViewModeMessageInspect {
+			return m.handleMessageInspectKeys(msg)
+		}
+
 		// Log view mode key handling
 		if m.viewMode == ViewModeLog {
 			return m.handleLogViewKeys(msg)
@@ -136,6 +141,23 @@ func (m Model) handleLogViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.viewMode = ViewModeBrowse
 		m.watchingSubject = ""
 		m.logScrollOffset = 0
+	case "enter":
+		// Enter message inspect mode for the most recent visible message
+		if m.viewer != nil {
+			messages := m.viewer.GetMessages()
+			if len(messages) > 0 {
+				// Select the newest visible message (bottom of the view)
+				m.inspectedMessageIndex = len(messages) - 1 - m.logScrollOffset
+				if m.inspectedMessageIndex < 0 {
+					m.inspectedMessageIndex = 0
+				}
+				if m.inspectedMessageIndex >= len(messages) {
+					m.inspectedMessageIndex = len(messages) - 1
+				}
+				m.inspectScrollOffset = 0
+				m.viewMode = ViewModeMessageInspect
+			}
+		}
 	case "up", "k":
 		// Scroll up in log view (show older messages)
 		if m.viewer != nil {
@@ -160,6 +182,49 @@ func (m Model) handleLogViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "G":
 		// Jump to bottom (most recent messages)
 		m.logScrollOffset = 0
+	}
+	return m, nil
+}
+
+// handleMessageInspectKeys handles key presses when in message inspect mode
+func (m Model) handleMessageInspectKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "q", "ctrl+c":
+		m.quitting = true
+		return m, tea.Quit
+	case "esc":
+		// Go back to log view
+		m.viewMode = ViewModeLog
+		m.inspectScrollOffset = 0
+	case "up", "k":
+		// Scroll up in the message content
+		if m.inspectScrollOffset > 0 {
+			m.inspectScrollOffset--
+		}
+	case "down", "j":
+		// Scroll down in the message content
+		m.inspectScrollOffset++
+	case "g":
+		// Jump to top
+		m.inspectScrollOffset = 0
+	case "G":
+		// Jump to bottom - will be clamped in render
+		m.inspectScrollOffset = 99999
+	case "left", "h":
+		// Navigate to previous message
+		if m.inspectedMessageIndex > 0 {
+			m.inspectedMessageIndex--
+			m.inspectScrollOffset = 0
+		}
+	case "right", "l":
+		// Navigate to next message
+		if m.viewer != nil {
+			messages := m.viewer.GetMessages()
+			if m.inspectedMessageIndex < len(messages)-1 {
+				m.inspectedMessageIndex++
+				m.inspectScrollOffset = 0
+			}
+		}
 	}
 	return m, nil
 }

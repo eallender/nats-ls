@@ -20,6 +20,7 @@ type ViewMode int
 const (
 	ViewModeBrowse ViewMode = iota
 	ViewModeLog
+	ViewModeMessageInspect
 )
 
 // Model represents the application state
@@ -45,6 +46,10 @@ type Model struct {
 	viewMode        ViewMode
 	logScrollOffset int    // Scroll offset for log view
 	watchingSubject string // The subject currently being watched in log view
+
+	// Message inspector state
+	inspectedMessageIndex int // Index of the message being inspected
+	inspectScrollOffset   int // Scroll offset within the inspected message
 
 	// NATS management
 	viewer    *monitor.Viewer

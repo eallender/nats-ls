@@ -126,3 +126,34 @@ var (
 			Foreground(ColorMuted).
 			Italic(true)
 )
+
+// Message inspector styles
+var (
+	InspectViewStyle = lipgloss.NewStyle().
+				Padding(1, 2).
+				BorderStyle(lipgloss.NormalBorder()).
+				BorderForeground(ColorMuted)
+
+	InspectKeyStyle = lipgloss.NewStyle().
+			Foreground(ColorInfo).
+			Bold(true)
+
+	InspectStringStyle = lipgloss.NewStyle().
+				Foreground(ColorSuccess)
+
+	InspectNumberStyle = lipgloss.NewStyle().
+				Foreground(ColorWarning)
+
+	InspectBoolStyle = lipgloss.NewStyle().
+			Foreground(ColorPrimary)
+
+	InspectNullStyle = lipgloss.NewStyle().
+			Foreground(ColorMuted).
+			Italic(true)
+
+	InspectBracketStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("252"))
+
+	InspectHeaderStyle = lipgloss.NewStyle().
+				Foreground(ColorMuted)
+)
