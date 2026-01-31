@@ -110,12 +110,30 @@ func (m Model) renderLogViewWithHeight(contentHeight int) string {
 					data = data[:dataWidth-3] + "..."
 				}
 
-				// Build the log line (no trailing newline on last message)
-				line := fmt.Sprintf("%s │ %s │ %s",
-					LogTimestampStyle.Render(timestamp),
-					LogSubjectStyle.Render(subject),
-					LogDataStyle.Render(data),
-				)
+				// Check if this row is selected
+				// Selection is relative to visible messages: 0 = bottom (newest visible)
+				// visibleIndex goes from 0 (top/oldest visible) to numMessages-1 (bottom/newest visible)
+				visibleIndex := i - startIdx
+				isSelected := visibleIndex == (numMessages - 1 - m.logSelectedIndex)
+
+				// Build the log line
+				var line string
+				if isSelected {
+					// Render entire line with selected style
+					lineContent := fmt.Sprintf("%s │ %s │ %s", timestamp, subject, data)
+					// Pad to full width for consistent highlight
+					if len(lineContent) < contentWidth {
+						lineContent += strings.Repeat(" ", contentWidth-len(lineContent))
+					}
+					line = LogSelectedRowStyle.Render(lineContent)
+				} else {
+					line = fmt.Sprintf("%s │ %s │ %s",
+						LogTimestampStyle.Render(timestamp),
+						LogSubjectStyle.Render(subject),
+						LogDataStyle.Render(data),
+					)
+				}
+
 				if i < endIdx-1 {
 					logText += line + "\n"
 				} else {

@@ -43,9 +43,10 @@ type Model struct {
 	navPath       []string // Current navigation path for hierarchical subject browsing
 
 	// View mode
-	viewMode        ViewMode
-	logScrollOffset int    // Scroll offset for log view
-	watchingSubject string // The subject currently being watched in log view
+	viewMode         ViewMode
+	logScrollOffset  int    // Scroll offset for log view
+	logSelectedIndex int    // Index of the selected message in log view (relative to visible messages)
+	watchingSubject  string // The subject currently being watched in log view
 
 	// Message inspector state
 	inspectedMessageIndex int // Index of the message being inspected

@@ -125,6 +125,11 @@ var (
 	LogEmptyStyle = lipgloss.NewStyle().
 			Foreground(ColorMuted).
 			Italic(true)
+
+	LogSelectedRowStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("0")).
+				Background(ColorPrimary).
+				Bold(true)
 )
 
 // Message inspector styles

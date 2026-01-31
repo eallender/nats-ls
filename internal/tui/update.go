@@ -94,6 +94,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.watchingSubject = subjectPath
 				m.viewMode = ViewModeLog
 				m.logScrollOffset = 0
+				m.logSelectedIndex = 0
 			}
 		case "esc":
 			// Go back up one level
@@ -141,13 +142,15 @@ func (m Model) handleLogViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.viewMode = ViewModeBrowse
 		m.watchingSubject = ""
 		m.logScrollOffset = 0
+		m.logSelectedIndex = 0
 	case "enter":
-		// Enter message inspect mode for the most recent visible message
+		// Enter message inspect mode for the selected message
 		if m.viewer != nil {
 			messages := m.viewer.GetMessages()
 			if len(messages) > 0 {
-				// Select the newest visible message (bottom of the view)
-				m.inspectedMessageIndex = len(messages) - 1 - m.logScrollOffset
+				// Calculate the actual message index from the selection
+				// logSelectedIndex is relative to visible messages (0 = newest visible)
+				m.inspectedMessageIndex = len(messages) - 1 - m.logScrollOffset - m.logSelectedIndex
 				if m.inspectedMessageIndex < 0 {
 					m.inspectedMessageIndex = 0
 				}
@@ -159,16 +162,40 @@ func (m Model) handleLogViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 	case "up", "k":
-		// Scroll up in log view (show older messages)
+		// Move selection up (to older messages)
 		if m.viewer != nil {
-			msgCount := m.viewer.GetMessageCount()
-			if m.logScrollOffset < msgCount-1 {
-				m.logScrollOffset++
+			messages := m.viewer.GetMessages()
+			msgCount := len(messages)
+			if msgCount > 0 {
+				// Calculate visible lines (approximation - matches view_log.go logic)
+				availableLines := m.getLogViewAvailableLines()
+
+				// Calculate how many messages are above the current view
+				endIdx := msgCount - m.logScrollOffset
+				if endIdx > msgCount {
+					endIdx = msgCount
+				}
+				startIdx := endIdx - availableLines
+				if startIdx < 0 {
+					startIdx = 0
+				}
+				visibleCount := endIdx - startIdx
+
+				// Move selection up within visible range
+				if m.logSelectedIndex < visibleCount-1 {
+					m.logSelectedIndex++
+				} else if startIdx > 0 {
+					// Scroll up to show more messages
+					m.logScrollOffset++
+				}
 			}
 		}
 	case "down", "j":
-		// Scroll down in log view (show newer messages)
-		if m.logScrollOffset > 0 {
+		// Move selection down (to newer messages)
+		if m.logSelectedIndex > 0 {
+			m.logSelectedIndex--
+		} else if m.logScrollOffset > 0 {
+			// Scroll down to show newer messages
 			m.logScrollOffset--
 		}
 	case "g":
@@ -176,14 +203,43 @@ func (m Model) handleLogViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.viewer != nil {
 			msgCount := m.viewer.GetMessageCount()
 			if msgCount > 0 {
-				m.logScrollOffset = msgCount - 1
+				availableLines := m.getLogViewAvailableLines()
+				m.logScrollOffset = msgCount - availableLines
+				if m.logScrollOffset < 0 {
+					m.logScrollOffset = 0
+				}
+				// Select the topmost (oldest) visible message
+				visibleCount := availableLines
+				if visibleCount > msgCount {
+					visibleCount = msgCount
+				}
+				m.logSelectedIndex = visibleCount - 1
 			}
 		}
 	case "G":
 		// Jump to bottom (most recent messages)
 		m.logScrollOffset = 0
+		m.logSelectedIndex = 0
 	}
 	return m, nil
+}
+
+// getLogViewAvailableLines calculates how many log lines can be displayed
+func (m Model) getLogViewAvailableLines() int {
+	// This should match the logic in view_log.go
+	frameHeight := GetFrameHeight(LogViewStyle)
+	headerHeight := 5 // Approximate header height
+	contentHeight := m.height - headerHeight
+	minRequiredHeight := MinContentHeight + frameHeight
+	if contentHeight < minRequiredHeight {
+		contentHeight = minRequiredHeight
+	}
+	contentHeightAdjusted := MaxContentHeight(contentHeight, LogViewStyle)
+	availableLines := contentHeightAdjusted - 2 // scroll indicator + buffer
+	if availableLines < 1 {
+		availableLines = 1
+	}
+	return availableLines
 }
 
 // handleMessageInspectKeys handles key presses when in message inspect mode
