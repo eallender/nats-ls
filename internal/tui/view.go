@@ -324,7 +324,8 @@ func (m Model) renderContentWithHeight(contentHeight int) string {
 		boxStyle = boxStyle.BorderTop(true).BorderBottom(true).BorderLeft(true).BorderRight(true)
 		content := boxStyle.Render(mainText)
 		// Insert title into top border
-		content = insertBorderTitle(content, styledTitle)
+		// Border width = content + horizontal padding (4) + borders (2) = contentWidth + 6
+		content = insertBorderTitle(content, styledTitle, contentWidth+6)
 		return content
 	}
 
@@ -366,17 +367,13 @@ func formatRelativeTime(t time.Time) string {
 }
 
 // insertBorderTitle inserts a centered title into the top border of a rendered box
-func insertBorderTitle(rendered, title string) string {
+// borderWidth should be the expected total width of the border (including corners)
+func insertBorderTitle(rendered, title string, borderWidth int) string {
 	lines := strings.Split(rendered, "\n")
 	if len(lines) == 0 {
 		return rendered
 	}
 
-	// The first line is the top border
-	topBorder := lines[0]
-
-	// Get the display width of the top border (ignoring ANSI codes)
-	borderWidth := lipgloss.Width(topBorder)
 	if borderWidth < 4 {
 		return rendered
 	}
@@ -436,34 +433,25 @@ func (m Model) renderLogViewWithHeight(contentHeight int) string {
 	}
 	contentHeightAdjusted := MaxContentHeight(contentHeight, LogViewStyle)
 
+	// Border title for the log view
+	borderTitle := fmt.Sprintf("Watching: %s", m.watchingSubject)
+	maxTitleLen := contentWidth - 4
+	if len(borderTitle) > maxTitleLen && maxTitleLen > 3 {
+		borderTitle = borderTitle[:maxTitleLen-3] + "..."
+	}
+
 	var logText string
 
-	// Title showing the watched subject
-	titleLine := fmt.Sprintf("Watching: %s", m.watchingSubject)
-	if len(titleLine) > contentWidth {
-		titleLine = titleLine[:contentWidth-3] + "..."
-	}
-	logText = LogHeaderStyle.Render(titleLine) + "\n"
-	logText += LogTimestampStyle.Render(strings.Repeat("─", contentWidth)) + "\n"
-
-	// Controls hint
-	controlsHint := "<esc> back | <↑↓> scroll | <g> top | <G> bottom"
-	if len(controlsHint) > contentWidth {
-		controlsHint = controlsHint[:contentWidth]
-	}
-	logText += LogTimestampStyle.Render(controlsHint) + "\n"
-
 	if m.viewer == nil {
-		logText += LogEmptyStyle.Render("Viewer not available")
+		logText = LogEmptyStyle.Render("Viewer not available")
 	} else {
 		messages := m.viewer.GetMessages()
 		if len(messages) == 0 {
 			logText += LogEmptyStyle.Render("Waiting for messages...")
 		} else {
 			// Calculate how many lines we can show
-			// Lines used: title(1) + separator(1) + controls(1) + scroll indicator(1) = 4
-			// Plus 1 extra to prevent overflow
-			availableLines := contentHeightAdjusted - 5
+			// Lines used: scroll indicator(1) + 1 extra to prevent overflow = 2
+			availableLines := contentHeightAdjusted - 2
 			if availableLines < 1 {
 				availableLines = 1
 			}
@@ -548,10 +536,28 @@ func (m Model) renderLogViewWithHeight(contentHeight int) string {
 		}
 	}
 
-	// Render in the log view style
-	content := LogViewStyle.
-		Height(contentHeightAdjusted).
-		Render(logText)
+	// Pad logText to ensure consistent width (like nav view does with ensureWidth)
+	// This prevents the box from resizing based on content
+	logLines := strings.Split(logText, "\n")
+	for i, line := range logLines {
+		lineWidth := lipgloss.Width(line)
+		if lineWidth < contentWidth {
+			logLines[i] = line + strings.Repeat(" ", contentWidth-lineWidth)
+		}
+	}
+	logText = strings.Join(logLines, "\n")
+
+	// Render in the log view style with border title
+	boxStyle := LogViewStyle.Height(contentHeightAdjusted)
+	boxStyle = boxStyle.BorderTop(true).BorderBottom(true).BorderLeft(true).BorderRight(true)
+	content := boxStyle.Render(logText)
+
+	// Insert the border title with same styling as nav view
+	// Border width = content width + padding (2+2) + borders (1+1) = contentWidth + 6
+	// But NavStyle also uses contentWidth+2, let's match that approach
+	styledTitle := lipgloss.NewStyle().Foreground(ColorPrimary).Bold(true).Render(borderTitle)
+	// The actual border width = content + horizontal padding (4) + borders (2) = contentWidth + 6
+	content = insertBorderTitle(content, styledTitle, contentWidth+6)
 
 	return content
 }
