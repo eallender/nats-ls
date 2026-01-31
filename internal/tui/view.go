@@ -183,7 +183,7 @@ func (m Model) renderHeader() string {
 	// Apply container style with padding and width
 	// Width sets content area, so account for horizontal padding (1 left + 1 right = 2)
 	return HeaderContainerStyle.
-		Width(m.width - 2).
+		Width(m.width-2).
 		Padding(0, 1).
 		Render(headerContent)
 }
@@ -212,45 +212,18 @@ func (m Model) renderContentWithHeight(contentHeight int) string {
 	// Build main content with hierarchical subjects as a table
 	var mainText string
 
-	if m.discovery != nil {
-		// Add path as a title line if drilled down
-		if len(m.navPath) > 0 {
-			pathDisplay := strings.Join(m.navPath, ".") + " >"
-			// Create a styled title that looks like it's part of the border
-			titleLen := len(pathDisplay)
-
-			// Ensure title fits within available width
-			if titleLen+4 > contentWidth {
-				// Truncate path if too long (leave room for spaces and dashes)
-				maxPathLen := contentWidth - 4 // Reserve space for " " + " " and at least 2 dashes
-				if maxPathLen > 0 {
-					pathDisplay = pathDisplay[:maxPathLen] + ">"
-					titleLen = len(pathDisplay)
-				} else {
-					// Terminal too narrow for title
-					pathDisplay = ">"
-					titleLen = 1
-				}
-			}
-
-			leftDashes := (contentWidth - titleLen - 2) / 2
-			if leftDashes < 0 {
-				leftDashes = 0
-			}
-			rightDashes := contentWidth - titleLen - 2 - leftDashes
-			if rightDashes < 0 {
-				rightDashes = 0
-			}
-
-			// Build title line with exact width (before styling)
-			rawTitle := strings.Repeat("─", leftDashes) + " " + pathDisplay + " " + strings.Repeat("─", rightDashes)
-			// Note: "─" is 3 bytes but 1 display column, so ensure display width not byte length
-			// Since we calculated leftDashes and rightDashes to fit contentWidth, this should be correct
-			// But add safety check for any edge cases with Unicode
-			titleLine := lipgloss.NewStyle().Foreground(ColorMuted).Render(rawTitle)
-			mainText = titleLine + "\n\n"
+	// Determine border title if drilled down
+	var borderTitle string
+	if m.discovery != nil && len(m.navPath) > 0 {
+		borderTitle = strings.Join(m.navPath, ".") + ".>"
+		// Truncate if too long
+		maxTitleLen := contentWidth - 4
+		if len(borderTitle) > maxTitleLen && maxTitleLen > 3 {
+			borderTitle = borderTitle[:maxTitleLen-3] + "...>"
 		}
+	}
 
+	if m.discovery != nil {
 		nodes := m.getSubjectsAtCurrentLevel()
 		if len(nodes) > 0 {
 			// Calculate column widths dynamically based on available space
@@ -343,11 +316,19 @@ func (m Model) renderContentWithHeight(contentHeight int) string {
 	// Main panel - Don't set Width() since our content is already sized correctly
 	// The Width() method causes lipgloss to try to wrap text that contains ANSI codes
 	// Our mainText lines are already exactly contentWidth wide
-	content := NavStyle.
-		Height(contentHeightAdjusted).
-		Render(mainText)
+	boxStyle := NavStyle.Height(contentHeightAdjusted)
 
-	return content
+	// Add border title if we have a path
+	if borderTitle != "" {
+		styledTitle := lipgloss.NewStyle().Foreground(ColorPrimary).Bold(true).Render(borderTitle)
+		boxStyle = boxStyle.BorderTop(true).BorderBottom(true).BorderLeft(true).BorderRight(true)
+		content := boxStyle.Render(mainText)
+		// Insert title into top border
+		content = insertBorderTitle(content, styledTitle)
+		return content
+	}
+
+	return boxStyle.Render(mainText)
 }
 
 // renderCommandBar creates the command input bar
@@ -382,6 +363,46 @@ func formatRelativeTime(t time.Time) string {
 	default:
 		return fmt.Sprintf("%dd ago", int(duration.Hours()/24))
 	}
+}
+
+// insertBorderTitle inserts a centered title into the top border of a rendered box
+func insertBorderTitle(rendered, title string) string {
+	lines := strings.Split(rendered, "\n")
+	if len(lines) == 0 {
+		return rendered
+	}
+
+	// The first line is the top border
+	topBorder := lines[0]
+
+	// Get the display width of the top border (ignoring ANSI codes)
+	borderWidth := lipgloss.Width(topBorder)
+	if borderWidth < 4 {
+		return rendered
+	}
+
+	// Calculate positioning for centered title
+	titleDisplayWidth := lipgloss.Width(title)
+	availableWidth := borderWidth - 2                      // minus corners
+	dashesNeeded := availableWidth - titleDisplayWidth - 2 // -2 for spaces around title
+
+	if dashesNeeded < 2 {
+		return rendered
+	}
+
+	// Center the title
+	leftDashes := dashesNeeded / 2
+	rightDashes := dashesNeeded - leftDashes
+
+	// Build the new top border with proper box-drawing characters and consistent styling
+	borderStyle := lipgloss.NewStyle().Foreground(ColorMuted)
+	newTopBorder := borderStyle.Render("┌"+strings.Repeat("─", leftDashes)) +
+		" " + title + " " +
+		borderStyle.Render(strings.Repeat("─", rightDashes)+"┐")
+
+	lines[0] = newTopBorder
+
+	return strings.Join(lines, "\n")
 }
 
 // ensureWidth ensures a string is exactly the specified width by truncating or padding
