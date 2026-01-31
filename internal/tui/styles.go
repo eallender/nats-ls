@@ -99,3 +99,29 @@ var (
 		Background(ColorBackground).
 		Padding(0, 1)
 )
+
+// Log view styles
+var (
+	LogViewStyle = lipgloss.NewStyle().
+			Padding(1, 2).
+			BorderStyle(lipgloss.NormalBorder()).
+			BorderForeground(ColorMuted)
+
+	LogTimestampStyle = lipgloss.NewStyle().
+				Foreground(ColorMuted)
+
+	LogSubjectStyle = lipgloss.NewStyle().
+			Foreground(ColorInfo).
+			Bold(true)
+
+	LogDataStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("252"))
+
+	LogHeaderStyle = lipgloss.NewStyle().
+			Foreground(ColorPrimary).
+			Bold(true)
+
+	LogEmptyStyle = lipgloss.NewStyle().
+			Foreground(ColorMuted).
+			Italic(true)
+)

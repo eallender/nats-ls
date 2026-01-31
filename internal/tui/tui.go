@@ -14,6 +14,14 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
+// ViewMode represents the current view mode
+type ViewMode int
+
+const (
+	ViewModeBrowse ViewMode = iota
+	ViewModeLog
+)
+
 // Model represents the application state
 type Model struct {
 	width    int
@@ -33,6 +41,11 @@ type Model struct {
 	// Navigation state
 	selectedIndex int
 	navPath       []string // Current navigation path for hierarchical subject browsing
+
+	// View mode
+	viewMode         ViewMode
+	logScrollOffset  int    // Scroll offset for log view
+	watchingSubject  string // The subject currently being watched in log view
 
 	// NATS management
 	viewer    *monitor.Viewer

@@ -4,6 +4,8 @@
 package tui
 
 import (
+	"strings"
+
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -33,7 +35,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		// Normal mode key handling
+		// Log view mode key handling
+		if m.viewMode == ViewModeLog {
+			return m.handleLogViewKeys(msg)
+		}
+
+		// Browse mode key handling
 		switch msg.String() {
 		case ":":
 			m.commandBarActive = true
@@ -60,6 +67,28 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.navPath = append(m.navPath, selectedNode.Name)
 					m.selectedIndex = 0
 				}
+			}
+		case "l":
+			// Switch to log view for the selected subject
+			nodes := m.getSubjectsAtCurrentLevel()
+			if len(nodes) > 0 && m.selectedIndex < len(nodes) && m.viewer != nil {
+				selectedNode := nodes[m.selectedIndex]
+				// Build the full subject path
+				var subjectPath string
+				if len(m.navPath) > 0 {
+					subjectPath = strings.Join(m.navPath, ".") + "." + selectedNode.Name
+				} else {
+					subjectPath = selectedNode.Name
+				}
+				// Add wildcard if not a leaf to capture all messages under this prefix
+				if !selectedNode.IsLeaf {
+					subjectPath += ".>"
+				}
+				// Start watching the subject
+				m.viewer.Watch(subjectPath)
+				m.watchingSubject = subjectPath
+				m.viewMode = ViewModeLog
+				m.logScrollOffset = 0
 			}
 		case "esc":
 			// Go back up one level
@@ -89,6 +118,48 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		// Otherwise just refresh the UI periodically to show new subjects
 		return m, tickCmd
+	}
+	return m, nil
+}
+
+// handleLogViewKeys handles key presses when in log view mode
+func (m Model) handleLogViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "q", "ctrl+c":
+		m.quitting = true
+		return m, tea.Quit
+	case "esc":
+		// Go back to browse view
+		if m.viewer != nil {
+			m.viewer.Watch("") // Stop watching
+		}
+		m.viewMode = ViewModeBrowse
+		m.watchingSubject = ""
+		m.logScrollOffset = 0
+	case "up", "k":
+		// Scroll up in log view (show older messages)
+		if m.viewer != nil {
+			msgCount := m.viewer.GetMessageCount()
+			if m.logScrollOffset < msgCount-1 {
+				m.logScrollOffset++
+			}
+		}
+	case "down", "j":
+		// Scroll down in log view (show newer messages)
+		if m.logScrollOffset > 0 {
+			m.logScrollOffset--
+		}
+	case "g":
+		// Jump to top (oldest messages)
+		if m.viewer != nil {
+			msgCount := m.viewer.GetMessageCount()
+			if msgCount > 0 {
+				m.logScrollOffset = msgCount - 1
+			}
+		}
+	case "G":
+		// Jump to bottom (most recent messages)
+		m.logScrollOffset = 0
 	}
 	return m, nil
 }
