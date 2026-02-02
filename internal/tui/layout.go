@@ -12,23 +12,9 @@ const (
 	MinContentHeight = 5
 )
 
-// Layout provides helpers for responsive TUI layout calculations
-type Layout struct {
-	TerminalWidth  int
-	TerminalHeight int
-}
-
-// NewLayout creates a layout helper for the given terminal dimensions
-func NewLayout(width, height int) Layout {
-	return Layout{
-		TerminalWidth:  width,
-		TerminalHeight: height,
-	}
-}
-
-// IsNarrow returns true if terminal width is below minimum for full layout
-func (l Layout) IsNarrow() bool {
-	return l.TerminalWidth < MinTerminalWidth
+// IsNarrowTerminal returns true if terminal width is below minimum for full layout
+func IsNarrowTerminal(width int) bool {
+	return width < MinTerminalWidth
 }
 
 // GetFrameHeight returns the vertical frame size (padding + borders) for a style
@@ -59,5 +45,27 @@ func MaxContentHeight(totalHeight int, style lipgloss.Style) int {
 		contentHeight = 1
 	}
 
+	return contentHeight
+}
+
+// GetContentWidth calculates the available content width accounting for
+// borders (1+1) and padding (2+2) = 6 characters
+func GetContentWidth(terminalWidth int) int {
+	const framePadding = 6 // 2+2 padding + 1+1 borders
+	contentWidth := terminalWidth - framePadding
+	if contentWidth < 1 {
+		contentWidth = 1
+	}
+	return contentWidth
+}
+
+// EnsureMinimumContentHeight ensures content height meets minimum requirements
+// including frame overhead (padding + borders)
+func EnsureMinimumContentHeight(contentHeight int, style lipgloss.Style) int {
+	frameHeight := GetFrameHeight(style)
+	minRequiredHeight := MinContentHeight + frameHeight
+	if contentHeight < minRequiredHeight {
+		return minRequiredHeight
+	}
 	return contentHeight
 }

@@ -44,12 +44,7 @@ var (
 				Foreground(ColorMuted).
 				Padding(0, 1)
 
-	HeaderStatsStyle = lipgloss.NewStyle().
-				Foreground(ColorMuted).
-				Padding(0, 1)
 
-	HeaderDividerStyle = lipgloss.NewStyle().
-				Foreground(ColorMuted)
 
 	HeaderControlStyle = lipgloss.NewStyle().
 				Foreground(ColorInfo).
@@ -64,6 +59,10 @@ var (
 
 // Navigation styles
 var (
+	BorderTitleStyle = lipgloss.NewStyle().
+				Foreground(ColorPrimary).
+				Bold(true)
+
 	NavStyle = lipgloss.NewStyle().
 		PaddingTop(0).
 		PaddingBottom(1).
@@ -83,14 +82,6 @@ var (
 					Foreground(lipgloss.Color("0")).
 					Background(ColorPrimary).
 					Bold(true)
-)
-
-// Info styles
-var (
-	InfoStyle = lipgloss.NewStyle().
-		Padding(1, 2).
-		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(ColorMuted)
 )
 
 // Command bar styles
@@ -118,9 +109,6 @@ var (
 	LogDataStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("252"))
 
-	LogHeaderStyle = lipgloss.NewStyle().
-			Foreground(ColorPrimary).
-			Bold(true)
 
 	LogEmptyStyle = lipgloss.NewStyle().
 			Foreground(ColorMuted).

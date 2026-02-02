@@ -6,29 +6,15 @@ package tui
 import (
 	"fmt"
 	"strings"
-
-	"github.com/charmbracelet/lipgloss"
 )
 
 // renderContentWithHeight creates the main content area with a single full-width panel
 func (m Model) renderContentWithHeight(contentHeight int) string {
-	// Enforce minimum content height (must account for frame overhead)
-	// The content boxes need frame space (padding+borders) plus some content
-	frameHeight := GetFrameHeight(NavStyle)
-	minRequiredHeight := MinContentHeight + frameHeight
-	if contentHeight < minRequiredHeight {
-		contentHeight = minRequiredHeight
-	}
+	// Enforce minimum content height
+	contentHeight = EnsureMinimumContentHeight(contentHeight, NavStyle)
 
-	// Calculate content width and height (accounting for NavStyle borders/padding)
-	// NavStyle has Padding(1, 2) = 2 left + 2 right = 4 horizontal padding
-	// NavStyle has borders = 1 left + 1 right = 2 horizontal borders
-	// Total horizontal frame = 6
-	contentWidth := m.width - 6
-	// Don't force a minimum that would cause overflow
-	if contentWidth < 1 {
-		contentWidth = 1
-	}
+	// Calculate content width and height
+	contentWidth := GetContentWidth(m.width)
 	contentHeightAdjusted := MaxContentHeight(contentHeight, NavStyle)
 
 	// Build main content with hierarchical subjects as a table
@@ -142,7 +128,7 @@ func (m Model) renderContentWithHeight(contentHeight int) string {
 
 	// Add border title if we have a path
 	if borderTitle != "" {
-		styledTitle := lipgloss.NewStyle().Foreground(ColorPrimary).Bold(true).Render(borderTitle)
+		styledTitle := BorderTitleStyle.Render(borderTitle)
 		boxStyle = boxStyle.BorderTop(true).BorderBottom(true).BorderLeft(true).BorderRight(true)
 		content := boxStyle.Render(mainText)
 		// Insert title into top border

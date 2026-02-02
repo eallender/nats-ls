@@ -15,17 +15,10 @@ import (
 // renderMessageInspectWithHeight creates the message inspector view with scrollable pretty JSON
 func (m Model) renderMessageInspectWithHeight(contentHeight int) string {
 	// Enforce minimum content height
-	frameHeight := GetFrameHeight(InspectViewStyle)
-	minRequiredHeight := MinContentHeight + frameHeight
-	if contentHeight < minRequiredHeight {
-		contentHeight = minRequiredHeight
-	}
+	contentHeight = EnsureMinimumContentHeight(contentHeight, InspectViewStyle)
 
 	// Calculate content dimensions
-	contentWidth := m.width - 6
-	if contentWidth < 1 {
-		contentWidth = 1
-	}
+	contentWidth := GetContentWidth(m.width)
 	contentHeightAdjusted := MaxContentHeight(contentHeight, InspectViewStyle)
 
 	var inspectText string
@@ -71,22 +64,25 @@ func (m Model) renderMessageInspectWithHeight(contentHeight int) string {
 				availableLines = 1
 			}
 
-			// Clamp scroll offset
+			// Calculate max scroll (clamping is done in Update, not here)
 			maxScroll := len(allLines) - availableLines
 			if maxScroll < 0 {
 				maxScroll = 0
 			}
-			if m.inspectScrollOffset > maxScroll {
-				m.inspectScrollOffset = maxScroll
+
+			// Clamp scroll offset for display (read-only)
+			scrollOffset := m.inspectScrollOffset
+			if scrollOffset > maxScroll {
+				scrollOffset = maxScroll
 			}
 
 			// Get visible lines
-			endIdx := m.inspectScrollOffset + availableLines
+			endIdx := scrollOffset + availableLines
 			if endIdx > len(allLines) {
 				endIdx = len(allLines)
 			}
 
-			visibleLines := allLines[m.inspectScrollOffset:endIdx]
+			visibleLines := allLines[scrollOffset:endIdx]
 
 			// Pad lines to content width
 			for i, line := range visibleLines {
@@ -112,14 +108,14 @@ func (m Model) renderMessageInspectWithHeight(contentHeight int) string {
 				} else {
 					scrollInfo = fmt.Sprintf("── PAUSED │ message %d of %d │ line %d-%d of %d ──",
 						m.inspectedMessageIndex+1, len(messages),
-						m.inspectScrollOffset+1, endIdx, len(allLines))
+						scrollOffset+1, endIdx, len(allLines))
 				}
 			} else if maxScroll == 0 {
 				scrollInfo = fmt.Sprintf("── message %d of %d ──", m.inspectedMessageIndex+1, len(messages))
 			} else {
 				scrollInfo = fmt.Sprintf("── message %d of %d │ line %d-%d of %d ──",
 					m.inspectedMessageIndex+1, len(messages),
-					m.inspectScrollOffset+1, endIdx, len(allLines))
+					scrollOffset+1, endIdx, len(allLines))
 			}
 			scrollInfoWidth := len(scrollInfo)
 			if scrollInfoWidth < contentWidth {
@@ -138,7 +134,7 @@ func (m Model) renderMessageInspectWithHeight(contentHeight int) string {
 	boxStyle = boxStyle.BorderTop(true).BorderBottom(true).BorderLeft(true).BorderRight(true)
 	content := boxStyle.Render(inspectText)
 
-	styledTitle := lipgloss.NewStyle().Foreground(ColorPrimary).Bold(true).Render(borderTitle)
+	styledTitle := BorderTitleStyle.Render(borderTitle)
 	content = insertBorderTitle(content, styledTitle, contentWidth+6)
 
 	return content

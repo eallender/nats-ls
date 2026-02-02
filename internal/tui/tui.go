@@ -86,24 +86,7 @@ func Run(config *config.Config) error {
 	var discovery *monitor.Discovery
 
 	var err error
-	nc, err = nats.Connect(
-		config.NatsAddress,
-		nats.MaxReconnects(config.NatsMaxReconnects),
-		nats.ReconnectWait(time.Duration(config.NatsReconnectWaitSeconds)*time.Second),
-		nats.DisconnectErrHandler(func(nc *nats.Conn, err error) {
-			if err != nil {
-				logger.Log.Warn("Disconnected from NATS", "error", err)
-			} else {
-				logger.Log.Info("Disconnected from NATS")
-			}
-		}),
-		nats.ReconnectHandler(func(nc *nats.Conn) {
-			logger.Log.Info("Reconnected to NATS", "address", nc.ConnectedUrl())
-		}),
-		nats.ClosedHandler(func(nc *nats.Conn) {
-			logger.Log.Debug("NATS connection closed")
-		}),
-	)
+	nc, err = createNATSConnection(config)
 	if err != nil {
 		// Initial connection failed, but continue with TUI
 		logger.Log.Warn("Could not connect to NATS", "address", config.NatsAddress, "error", err)

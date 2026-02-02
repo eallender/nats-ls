@@ -15,7 +15,6 @@ type SubjectNode struct {
 	IsLeaf       bool // true if this is a complete subject, false if it's a prefix
 	MessageCount int64
 	LastSeen     time.Time
-	FirstSeen    time.Time
 }
 
 // getSubjectsAtCurrentLevel returns the subjects/prefixes at the current navigation level
@@ -67,17 +66,12 @@ func (m Model) getSubjectsAtCurrentLevel() []SubjectNode {
 				if lastSeen.After(existing.LastSeen) {
 					existing.LastSeen = lastSeen
 				}
-				// Track the earliest FirstSeen
-				if subject.FirstSeen.Before(existing.FirstSeen) {
-					existing.FirstSeen = subject.FirstSeen
-				}
 			} else {
 				nodeMap[nextLevel] = &SubjectNode{
 					Name:         nextLevel,
 					IsLeaf:       isLeaf,
 					MessageCount: subject.MessageCount.Load(),
 					LastSeen:     lastSeen,
-					FirstSeen:    subject.FirstSeen,
 				}
 			}
 		}

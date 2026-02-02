@@ -8,6 +8,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/eallender/nats-ls/internal/config"
 	"github.com/eallender/nats-ls/internal/logger"
 	"github.com/eallender/nats-ls/internal/monitor"
 	"github.com/nats-io/nats.go"
@@ -23,12 +24,12 @@ func (m Model) Init() tea.Cmd {
 	return tickCmd
 }
 
-// tryConnect attempts to connect to NATS and returns a command
-func (m Model) tryConnect() tea.Msg {
-	nc, err := nats.Connect(
-		m.config.NatsAddress,
-		nats.MaxReconnects(m.config.NatsMaxReconnects),
-		nats.ReconnectWait(time.Duration(m.config.NatsReconnectWaitSeconds)*time.Second),
+// createNATSConnection creates a NATS connection with standard handlers
+func createNATSConnection(cfg *config.Config) (*nats.Conn, error) {
+	return nats.Connect(
+		cfg.NatsAddress,
+		nats.MaxReconnects(cfg.NatsMaxReconnects),
+		nats.ReconnectWait(time.Duration(cfg.NatsReconnectWaitSeconds)*time.Second),
 		nats.DisconnectErrHandler(func(nc *nats.Conn, err error) {
 			if err != nil {
 				logger.Log.Warn("Disconnected from NATS", "error", err)
@@ -43,6 +44,11 @@ func (m Model) tryConnect() tea.Msg {
 			logger.Log.Debug("NATS connection closed")
 		}),
 	)
+}
+
+// tryConnect attempts to connect to NATS and returns a command
+func (m Model) tryConnect() tea.Msg {
+	nc, err := createNATSConnection(m.config)
 
 	if err != nil {
 		logger.Log.Debug("Connection attempt failed", "error", err)

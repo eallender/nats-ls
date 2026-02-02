@@ -9,6 +9,17 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// getPauseResumeLabel returns the key and label for pause/resume control
+func (m Model) getPauseResumeLabel() (key string, label string) {
+	key = "<s>"
+	if m.viewer != nil && m.viewer.IsPaused() {
+		label = "resume"
+	} else {
+		label = "pause"
+	}
+	return key, label
+}
+
 // View implements tea.Model
 func (m Model) View() string {
 	if m.quitting {
@@ -55,8 +66,7 @@ func (m Model) View() string {
 // renderHeader creates the header bar with app info and status
 func (m Model) renderHeader() string {
 	// Handle very small widths with simplified header
-	layout := NewLayout(m.width, m.height)
-	if layout.IsNarrow() {
+	if IsNarrowTerminal(m.width) {
 		status := "●"
 		if m.IsConnected() {
 			status = HeaderConnectedStyle.Render(status)
@@ -97,15 +107,8 @@ func (m Model) renderHeader() string {
 	var controls1, controlsInfo1, controls2, controlsInfo2 string
 
 	if m.viewMode == ViewModeMessageInspect {
-		// Message inspect view controls - show pause/resume based on current state
-		var pauseKey, pauseLabel string
-		if m.viewer != nil && m.viewer.IsPaused() {
-			pauseKey = "<s>"
-			pauseLabel = "resume"
-		} else {
-			pauseKey = "<s>"
-			pauseLabel = "pause"
-		}
+		// Message inspect view controls
+		pauseKey, pauseLabel := m.getPauseResumeLabel()
 
 		controls1 = HeaderControlStyle.Render(lipgloss.JoinVertical(
 			lipgloss.Left,
@@ -141,15 +144,8 @@ func (m Model) renderHeader() string {
 			"quit",
 		))
 	} else if m.viewMode == ViewModeLog {
-		// Log view controls - show pause/resume based on current state
-		var pauseKey, pauseLabel string
-		if m.viewer != nil && m.viewer.IsPaused() {
-			pauseKey = "<s>"
-			pauseLabel = "resume"
-		} else {
-			pauseKey = "<s>"
-			pauseLabel = "pause"
-		}
+		// Log view controls
+		pauseKey, pauseLabel := m.getPauseResumeLabel()
 
 		controls1 = HeaderControlStyle.Render(lipgloss.JoinVertical(
 			lipgloss.Left,

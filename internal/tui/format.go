@@ -69,16 +69,15 @@ func insertBorderTitle(rendered, title string, borderWidth int) string {
 	return strings.Join(lines, "\n")
 }
 
-// ensureWidth ensures a string is exactly the specified width by truncating or padding
-// This is safe for UTF-8 but treats multi-byte characters as single units
+// ensureWidth ensures a string is exactly the specified width by truncating or padding.
+// WARNING: This function is ASCII-only. It uses len() which counts bytes, not runes.
+// Multi-byte UTF-8 characters will cause incorrect width calculations and may be corrupted
+// by mid-character truncation. Only use for content guaranteed to be ASCII.
 func ensureWidth(s string, width int) string {
-	// For ASCII-only strings (which our table uses), len() == display width
 	currentLen := len(s)
 	if currentLen > width {
-		// Truncate - safe for ASCII, may need rune handling for Unicode subjects
 		return s[:width]
 	} else if currentLen < width {
-		// Pad with spaces
 		return s + strings.Repeat(" ", width-currentLen)
 	}
 	return s

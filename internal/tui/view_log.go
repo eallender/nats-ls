@@ -13,17 +13,10 @@ import (
 // renderLogViewWithHeight creates the log view showing live NATS messages
 func (m Model) renderLogViewWithHeight(contentHeight int) string {
 	// Enforce minimum content height
-	frameHeight := GetFrameHeight(LogViewStyle)
-	minRequiredHeight := MinContentHeight + frameHeight
-	if contentHeight < minRequiredHeight {
-		contentHeight = minRequiredHeight
-	}
+	contentHeight = EnsureMinimumContentHeight(contentHeight, LogViewStyle)
 
 	// Calculate content dimensions
-	contentWidth := m.width - 6
-	if contentWidth < 1 {
-		contentWidth = 1
-	}
+	contentWidth := GetContentWidth(m.width)
 	contentHeightAdjusted := MaxContentHeight(contentHeight, LogViewStyle)
 
 	// Border title for the log view
@@ -194,7 +187,7 @@ func (m Model) renderLogViewWithHeight(contentHeight int) string {
 	// Insert the border title with same styling as nav view
 	// Border width = content width + padding (2+2) + borders (1+1) = contentWidth + 6
 	// But NavStyle also uses contentWidth+2, let's match that approach
-	styledTitle := lipgloss.NewStyle().Foreground(ColorPrimary).Bold(true).Render(borderTitle)
+	styledTitle := BorderTitleStyle.Render(borderTitle)
 	// The actual border width = content + horizontal padding (4) + borders (2) = contentWidth + 6
 	content = insertBorderTitle(content, styledTitle, contentWidth+6)
 
