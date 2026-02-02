@@ -63,14 +63,28 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.selectedIndex++
 			}
 		case "enter":
-			// Drill down into the selected subject
+			// Drill down into the selected subject or view logs for leaf nodes
 			nodes := m.getSubjectsAtCurrentLevel()
 			if len(nodes) > 0 && m.selectedIndex < len(nodes) {
 				selectedNode := nodes[m.selectedIndex]
-				// Only drill down if it's not a leaf (i.e., has children)
 				if !selectedNode.IsLeaf {
+					// Drill down if it's not a leaf (i.e., has children)
 					m.navPath = append(m.navPath, selectedNode.Name)
 					m.selectedIndex = 0
+				} else if m.viewer != nil {
+					// Switch to log view for leaf nodes
+					var subjectPath string
+					if len(m.navPath) > 0 {
+						subjectPath = strings.Join(m.navPath, ".") + "." + selectedNode.Name
+					} else {
+						subjectPath = selectedNode.Name
+					}
+					// Start watching the subject
+					m.viewer.Watch(subjectPath)
+					m.watchingSubject = subjectPath
+					m.viewMode = ViewModeLog
+					m.logScrollOffset = 0
+					m.logSelectedIndex = 0
 				}
 			}
 		case "l":
