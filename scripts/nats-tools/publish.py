@@ -41,11 +41,19 @@ class Config:
     # Normal publishers
     normal_publishers: int = 0
     normal_subject_prefix: str = "test.normal"
+    normal_subject_bases: list[str] = field(default_factory=list)  # Multiple bases for variety
+    normal_subject_fuzz: bool = False  # Enable random subject generation
+    normal_subject_depth_min: int = 1  # Min depth for fuzzing
+    normal_subject_depth_max: int = 4  # Max depth for fuzzing
     normal_interval_ms: int = 1000
 
     # JetStream publishers
     js_publishers: int = 0
     js_subject_prefix: str = "test.js"
+    js_subject_bases: list[str] = field(default_factory=list)
+    js_subject_fuzz: bool = False
+    js_subject_depth_min: int = 1
+    js_subject_depth_max: int = 4
     js_stream_name: str = "TEST"
     js_interval_ms: int = 1000
 
@@ -130,6 +138,55 @@ def random_string(length: int) -> str:
     return "".join(random.choices(string.ascii_letters + string.digits, k=length))
 
 
+def generate_subject_component() -> str:
+    """Generate a random subject component (token between dots)."""
+    # Mix of realistic patterns
+    patterns = [
+        lambda: random.choice(["users", "orders", "payments", "events", "logs", "metrics", "alerts"]),
+        lambda: random.choice(["api", "service", "worker", "handler", "processor"]),
+        lambda: random.choice(["v1", "v2", "v3", "prod", "staging", "dev"]),
+        lambda: random.choice(["create", "update", "delete", "read", "list"]),
+        lambda: f"id{random.randint(1, 999)}",
+        lambda: random_string(random.randint(4, 10)).lower(),
+    ]
+    return random.choice(patterns)()
+
+
+def generate_random_subject(depth_min: int = 1, depth_max: int = 4) -> str:
+    """Generate a random subject with realistic hierarchy."""
+    depth = random.randint(depth_min, depth_max)
+    components = [generate_subject_component() for _ in range(depth)]
+    return ".".join(components)
+
+
+def get_subject_for_publisher(
+    publisher_id: int,
+    sequence: int,
+    prefix: str,
+    bases: list[str],
+    fuzz: bool,
+    depth_min: int,
+    depth_max: int,
+) -> str:
+    """Get the subject to publish to based on configuration.
+
+    Returns different subjects based on mode:
+    - Default: prefix.{publisher_id}
+    - Multiple bases: rotates through bases with publisher_id appended
+    - Fuzz mode: generates random subjects each time
+    """
+    if fuzz:
+        # Generate a new random subject for each message
+        return generate_random_subject(depth_min, depth_max)
+    elif bases:
+        # Rotate through bases, append publisher_id
+        base = bases[publisher_id % len(bases)]
+        return f"{base}.{publisher_id}"
+    else:
+        # Default behavior
+        return f"{prefix}.{publisher_id}"
+
+
 def create_message(
     publisher_id: int, publisher_type: str, sequence: int, config: Config
 ) -> bytes:
@@ -154,18 +211,27 @@ async def run_normal_publisher(
     stop_event: asyncio.Event,
 ):
     """Run a normal (core NATS) publisher."""
-    subject = f"{config.normal_subject_prefix}.{publisher_id}"
     interval = config.normal_interval_ms / 1000.0
     sequence = 0
 
     if config.verbose:
+        mode = "fuzzing" if config.normal_subject_fuzz else "fixed"
         print(
-            f"[Normal-{publisher_id}] Started publishing to {subject} every {config.normal_interval_ms}ms"
+            f"[Normal-{publisher_id}] Started publishing in {mode} mode every {config.normal_interval_ms}ms"
         )
 
     while not stop_event.is_set():
         try:
             sequence += 1
+            subject = get_subject_for_publisher(
+                publisher_id,
+                sequence,
+                config.normal_subject_prefix,
+                config.normal_subject_bases,
+                config.normal_subject_fuzz,
+                config.normal_subject_depth_min,
+                config.normal_subject_depth_max,
+            )
             msg = create_message(publisher_id, "normal", sequence, config)
             await nc.publish(subject, msg)
             await stats.increment("normal_sent")
@@ -192,18 +258,27 @@ async def run_js_publisher(
     stop_event: asyncio.Event,
 ):
     """Run a JetStream publisher."""
-    subject = f"{config.js_subject_prefix}.{publisher_id}"
     interval = config.js_interval_ms / 1000.0
     sequence = 0
 
     if config.verbose:
+        mode = "fuzzing" if config.js_subject_fuzz else "fixed"
         print(
-            f"[JS-{publisher_id}] Started publishing to {subject} every {config.js_interval_ms}ms"
+            f"[JS-{publisher_id}] Started publishing in {mode} mode every {config.js_interval_ms}ms"
         )
 
     while not stop_event.is_set():
         try:
             sequence += 1
+            subject = get_subject_for_publisher(
+                publisher_id,
+                sequence,
+                config.js_subject_prefix,
+                config.js_subject_bases,
+                config.js_subject_fuzz,
+                config.js_subject_depth_min,
+                config.js_subject_depth_max,
+            )
             msg = create_message(publisher_id, "jetstream", sequence, config)
             await js.publish(subject, msg)
             await stats.increment("js_sent")
@@ -378,16 +453,18 @@ def print_final_stats(stats: Stats):
     print("=" * 42)
 
 
-async def ensure_stream(js: nats.js.JetStreamContext, name: str, subject_prefix: str):
+async def ensure_stream(js: nats.js.JetStreamContext, name: str, subject_pattern: str, is_fuzzing: bool = False):
     """Ensure a JetStream stream exists."""
     try:
+        # For fuzzing, use wildcard to catch all subjects
+        subjects = [">"] if is_fuzzing else [f"{subject_pattern}.>"]
         await js.add_stream(
             name=name,
-            subjects=[f"{subject_prefix}.>"],
+            subjects=subjects,
             storage="memory",
             max_age=3600,  # 1 hour
         )
-        print(f"Created stream: {name}")
+        print(f"Created stream: {name} (subjects: {subjects})")
     except nats.js.errors.BadRequestError:
         # Stream already exists
         pass
@@ -497,7 +574,7 @@ async def main(config: Config):
 
     # JetStream publishers
     if config.js_publishers > 0:
-        await ensure_stream(js, config.js_stream_name, config.js_subject_prefix)
+        await ensure_stream(js, config.js_stream_name, config.js_subject_prefix, config.js_subject_fuzz)
         for i in range(config.js_publishers):
             tasks.append(
                 asyncio.create_task(run_js_publisher(js, i, config, stats, stop_event))
@@ -573,11 +650,14 @@ def parse_args() -> tuple[Config, bool]:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s --normal 5                    # 5 normal publishers
-  %(prog)s --normal 5 --js 3             # 5 normal + 3 JetStream
-  %(prog)s --normal 10 --verbose         # 10 normal with verbose output
-  %(prog)s --config config.json          # Use config file
-  %(prog)s --generate-config > cfg.json  # Generate sample config
+  %(prog)s --normal 5                                    # 5 normal publishers
+  %(prog)s --normal 5 --js 3                             # 5 normal + 3 JetStream
+  %(prog)s --normal 10 --verbose                         # 10 normal with verbose output
+  %(prog)s --normal 5 --normal-fuzz                      # 5 publishers with random subjects
+  %(prog)s --normal 3 --normal-bases api.v1 api.v2 events  # 3 publishers rotating through bases
+  %(prog)s --normal 10 --normal-fuzz --normal-depth-max 5  # Deep random hierarchies
+  %(prog)s --config config.json                          # Use config file
+  %(prog)s --generate-config > cfg.json                  # Generate sample config
         """,
     )
 
@@ -600,6 +680,28 @@ Examples:
         help="Subject prefix (default: test.normal)",
     )
     normal.add_argument(
+        "--normal-bases",
+        nargs="+",
+        help="Multiple subject bases to rotate through (e.g., api.v1 api.v2 worker.tasks)",
+    )
+    normal.add_argument(
+        "--normal-fuzz",
+        action="store_true",
+        help="Enable random subject generation for testing",
+    )
+    normal.add_argument(
+        "--normal-depth-min",
+        type=int,
+        default=1,
+        help="Minimum subject depth for fuzzing (default: 1)",
+    )
+    normal.add_argument(
+        "--normal-depth-max",
+        type=int,
+        default=4,
+        help="Maximum subject depth for fuzzing (default: 4)",
+    )
+    normal.add_argument(
         "--normal-interval",
         type=int,
         default=1000,
@@ -611,6 +713,28 @@ Examples:
     js.add_argument("--js", type=int, default=0, help="Number of JetStream publishers")
     js.add_argument(
         "--js-subject", default="test.js", help="Subject prefix (default: test.js)"
+    )
+    js.add_argument(
+        "--js-bases",
+        nargs="+",
+        help="Multiple subject bases to rotate through",
+    )
+    js.add_argument(
+        "--js-fuzz",
+        action="store_true",
+        help="Enable random subject generation for testing",
+    )
+    js.add_argument(
+        "--js-depth-min",
+        type=int,
+        default=1,
+        help="Minimum subject depth for fuzzing (default: 1)",
+    )
+    js.add_argument(
+        "--js-depth-max",
+        type=int,
+        default=4,
+        help="Maximum subject depth for fuzzing (default: 4)",
     )
     js.add_argument("--js-stream", default="TEST", help="Stream name (default: TEST)")
     js.add_argument(
@@ -728,9 +852,17 @@ Examples:
             nats_url=args.url,
             normal_publishers=args.normal,
             normal_subject_prefix=args.normal_subject,
+            normal_subject_bases=args.normal_bases or [],
+            normal_subject_fuzz=args.normal_fuzz,
+            normal_subject_depth_min=args.normal_depth_min,
+            normal_subject_depth_max=args.normal_depth_max,
             normal_interval_ms=args.normal_interval,
             js_publishers=args.js,
             js_subject_prefix=args.js_subject,
+            js_subject_bases=args.js_bases or [],
+            js_subject_fuzz=args.js_fuzz,
+            js_subject_depth_min=args.js_depth_min,
+            js_subject_depth_max=args.js_depth_max,
             js_stream_name=args.js_stream,
             js_interval_ms=args.js_interval,
             reqrep_publishers=args.reqrep,
