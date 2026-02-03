@@ -9,6 +9,23 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+// getBrowseAvailableLines calculates how many subject rows can be displayed
+func (m Model) getBrowseAvailableLines() int {
+	frameHeight := GetFrameHeight(NavStyle)
+	headerHeight := 5 // Approximate header height
+	contentHeight := m.height - headerHeight
+	minRequiredHeight := MinContentHeight + frameHeight
+	if contentHeight < minRequiredHeight {
+		contentHeight = minRequiredHeight
+	}
+	contentHeightAdjusted := MaxContentHeight(contentHeight, NavStyle)
+	availableLines := contentHeightAdjusted - 2 // header + scroll indicator
+	if availableLines < 1 {
+		availableLines = 1
+	}
+	return availableLines
+}
+
 // Update implements tea.Model
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -56,11 +73,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "up", "k":
 			if m.selectedIndex > 0 {
 				m.selectedIndex--
+				// Scroll up if needed to keep selection visible
+				if m.selectedIndex < m.browseScrollOffset {
+					m.browseScrollOffset = m.selectedIndex
+				}
 			}
 		case "down", "j":
 			nodes := m.getSubjectsAtCurrentLevel()
 			if m.selectedIndex < len(nodes)-1 {
 				m.selectedIndex++
+				// Scroll down if needed to keep selection visible
+				availableLines := m.getBrowseAvailableLines()
+				if m.selectedIndex >= m.browseScrollOffset+availableLines {
+					m.browseScrollOffset = m.selectedIndex - availableLines + 1
+				}
 			}
 		case "enter":
 			// Drill down into the selected subject or view logs for leaf nodes
@@ -71,6 +97,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					// Drill down if it's not a leaf (i.e., has children)
 					m.navPath = append(m.navPath, selectedNode.Name)
 					m.selectedIndex = 0
+					m.browseScrollOffset = 0
 				} else if m.viewer != nil {
 					// Switch to log view for leaf nodes
 					var subjectPath string
@@ -115,6 +142,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if len(m.navPath) > 0 {
 				m.navPath = m.navPath[:len(m.navPath)-1]
 				m.selectedIndex = 0
+				m.browseScrollOffset = 0
 			}
 		}
 	case tea.WindowSizeMsg:

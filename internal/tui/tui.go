@@ -39,8 +39,9 @@ type Model struct {
 	commandInput     string
 
 	// Navigation state
-	selectedIndex int
-	navPath       []string // Current navigation path for hierarchical subject browsing
+	selectedIndex      int
+	browseScrollOffset int      // Scroll offset for browse view (top-most visible item)
+	navPath            []string // Current navigation path for hierarchical subject browsing
 
 	// View mode
 	viewMode         ViewMode

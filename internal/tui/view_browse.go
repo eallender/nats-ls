@@ -79,6 +79,29 @@ func (m Model) renderContentWithHeight(contentHeight int) string {
 				}
 			}
 
+			// Calculate how many rows we can show (reserve 1 line for header, 1 for scroll indicator)
+			availableLines := contentHeightAdjusted - 2
+			if availableLines < 1 {
+				availableLines = 1
+			}
+
+			// Calculate visible range of subjects
+			totalNodes := len(nodes)
+			startIdx := m.browseScrollOffset
+			if startIdx < 0 {
+				startIdx = 0
+			}
+			if startIdx >= totalNodes {
+				startIdx = totalNodes - 1
+				if startIdx < 0 {
+					startIdx = 0
+				}
+			}
+			endIdx := startIdx + availableLines
+			if endIdx > totalNodes {
+				endIdx = totalNodes
+			}
+
 			// Table header with dynamic column widths
 			headerText := fmt.Sprintf("%-*s %*s %*s", subjectColWidth, "SUBJECT", msgColWidth, "MESSAGES", lastSeenColWidth, "LAST SEEN")
 			// Ensure exact width to prevent wrapping
@@ -86,8 +109,9 @@ func (m Model) renderContentWithHeight(contentHeight int) string {
 			header := NavTableHeaderStyle.Render(headerText)
 			mainText += header + "\n"
 
-			// Table rows
-			for i, node := range nodes {
+			// Table rows (only render visible ones)
+			for i := startIdx; i < endIdx; i++ {
+				node := nodes[i]
 				rowStyle := NavTableRowStyle
 				if i == m.selectedIndex {
 					rowStyle = NavTableSelectedRowStyle
@@ -113,6 +137,12 @@ func (m Model) renderContentWithHeight(contentHeight int) string {
 				rowText = ensureWidth(rowText, contentWidth)
 				row := rowStyle.Render(rowText)
 				mainText += row + "\n"
+			}
+
+			// Add scroll indicator if there are more items
+			if totalNodes > availableLines {
+				scrollInfo := fmt.Sprintf("Showing %d-%d of %d", startIdx+1, endIdx, totalNodes)
+				mainText += NavTableHeaderStyle.Render(ensureWidth(scrollInfo, contentWidth))
 			}
 		} else {
 			mainText += ensureWidth("No subjects discovered yet...", contentWidth)
