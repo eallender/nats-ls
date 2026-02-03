@@ -35,13 +35,15 @@ type Model struct {
 	config    *config.Config
 
 	// Command bar state
-	commandBarActive bool
-	commandInput     string
+	commandBarActive     bool
+	commandInput         string
+	commandPreviousFilter string // Previous filter value before opening command bar
 
 	// Navigation state
 	selectedIndex      int
 	browseScrollOffset int      // Scroll offset for browse view (top-most visible item)
 	navPath            []string // Current navigation path for hierarchical subject browsing
+	subjectFilter      string   // Filter pattern for subjects (empty = no filter)
 
 	// View mode
 	viewMode         ViewMode

@@ -242,8 +242,16 @@ func (m Model) renderCommandBar() string {
 		return ""
 	}
 
+	// Show filter prompt with instructions
+	var promptText string
+	if m.commandInput == "" {
+		promptText = "Filter: (type to filter subjects, Enter to apply, Esc to cancel)"
+	} else {
+		promptText = fmt.Sprintf("Filter: %s", m.commandInput)
+	}
+
 	prompt := CommandBarStyle.
 		Width(m.width).
-		Render(fmt.Sprintf(":%s", m.commandInput))
+		Render(promptText)
 	return prompt
 }

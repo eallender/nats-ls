@@ -43,6 +43,14 @@ func (m Model) getSubjectsAtCurrentLevel() []SubjectNode {
 			continue
 		}
 
+		// Apply subject filter if active
+		if m.subjectFilter != "" {
+			// Case-insensitive substring match
+			if !strings.Contains(strings.ToLower(subject.Name), strings.ToLower(m.subjectFilter)) {
+				continue
+			}
+		}
+
 		// Get the part after the current prefix
 		remainder := strings.TrimPrefix(subject.Name, currentPrefix)
 

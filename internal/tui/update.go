@@ -34,20 +34,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.commandBarActive {
 			switch msg.String() {
 			case "enter":
-				// TODO: Implement command processing (e.g., filter subjects by pattern)
-				// For now, just clear the command bar
+				// Accept the filter and close command bar
 				m.commandBarActive = false
 				m.commandInput = ""
+				// Reset scroll position when filter is applied
+				m.selectedIndex = 0
+				m.browseScrollOffset = 0
 			case "esc":
+				// Restore previous filter and close command bar
+				m.subjectFilter = m.commandPreviousFilter
 				m.commandBarActive = false
 				m.commandInput = ""
+				m.selectedIndex = 0
+				m.browseScrollOffset = 0
 			case "backspace":
 				if len(m.commandInput) > 0 {
 					m.commandInput = m.commandInput[:len(m.commandInput)-1]
+					// Apply filter live
+					(&m).applyLiveFilter()
 				}
 			default:
-				// Add character to input
+				// Add character to input and apply filter live
 				m.commandInput += msg.String()
+				(&m).applyLiveFilter()
 			}
 			return m, nil
 		}
@@ -66,7 +75,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case ":":
 			m.commandBarActive = true
-			m.commandInput = ""
+			// Save current filter state and pre-populate input
+			m.commandPreviousFilter = m.subjectFilter
+			m.commandInput = m.subjectFilter
 		case "q", "ctrl+c":
 			m.quitting = true
 			return m, tea.Quit
@@ -168,6 +179,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tickCmd
 	}
 	return m, nil
+}
+
+// applyLiveFilter applies the current command input as a filter in real-time
+func (m *Model) applyLiveFilter() {
+	input := strings.TrimSpace(m.commandInput)
+
+	// Direct input becomes the filter (no need for "filter" prefix while typing)
+	m.subjectFilter = input
+
+	// Reset selection when filter changes
+	m.selectedIndex = 0
+	m.browseScrollOffset = 0
 }
 
 // handleLogViewKeys handles key presses when in log view mode

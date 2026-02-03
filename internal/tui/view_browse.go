@@ -20,14 +20,23 @@ func (m Model) renderContentWithHeight(contentHeight int) string {
 	// Build main content with hierarchical subjects as a table
 	var mainText string
 
-	// Determine border title if drilled down
+	// Determine border title if drilled down or filter is active
 	var borderTitle string
-	if m.discovery != nil && len(m.navPath) > 0 {
-		borderTitle = strings.Join(m.navPath, ".") + ".>"
+	if m.discovery != nil {
+		if len(m.navPath) > 0 {
+			borderTitle = strings.Join(m.navPath, ".") + ".>"
+		}
+		// Add filter indicator
+		if m.subjectFilter != "" {
+			if borderTitle != "" {
+				borderTitle += " "
+			}
+			borderTitle += fmt.Sprintf("[filter: %s]", m.subjectFilter)
+		}
 		// Truncate if too long
 		maxTitleLen := contentWidth - 4
 		if len(borderTitle) > maxTitleLen && maxTitleLen > 3 {
-			borderTitle = borderTitle[:maxTitleLen-3] + "...>"
+			borderTitle = borderTitle[:maxTitleLen-3] + "..."
 		}
 	}
 
