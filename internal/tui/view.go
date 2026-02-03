@@ -96,12 +96,26 @@ func (m Model) renderHeader() string {
 
 	status := statusStyle.Render(statusText)
 	server := HeaderServerStyle.Render(fmt.Sprintf("Server: %s", m.serverURL))
+
+	// Add view mode indicator for browse mode
+	var viewModeText string
+	if m.viewMode == ViewModeBrowse {
+		if m.flatViewMode {
+			viewModeText = HeaderServerStyle.Render("View: flat")
+		} else {
+			viewModeText = HeaderServerStyle.Render("View: hierarchical")
+		}
+	}
+
+	statusLines := []string{"", status, server}
+	if viewModeText != "" {
+		statusLines = append(statusLines, viewModeText)
+	}
+	statusLines = append(statusLines, "")
+
 	statusInfo := HeaderStatusInfoStyle.Render(lipgloss.JoinVertical(
 		lipgloss.Left,
-		"",
-		status,
-		server,
-		"",
+		statusLines...,
 	))
 
 	var controls1, controlsInfo1, controls2, controlsInfo2 string
@@ -204,6 +218,7 @@ func (m Model) renderHeader() string {
 				lipgloss.Left,
 				"",
 				"<l>",
+				"<c>",
 				"<:>",
 				"<q>",
 			))
@@ -212,6 +227,7 @@ func (m Model) renderHeader() string {
 			lipgloss.Left,
 			"",
 			"logs",
+			"toggle view",
 			"filter",
 			"quit",
 		))

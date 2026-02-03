@@ -78,6 +78,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Save current filter state and pre-populate input
 			m.commandPreviousFilter = m.subjectFilter
 			m.commandInput = m.subjectFilter
+		case "c":
+			// Toggle between flat and hierarchical view
+			m.flatViewMode = !m.flatViewMode
+			// Clear navigation path when entering flat view
+			if m.flatViewMode {
+				m.navPath = nil
+			}
+			// Reset selection and scroll
+			m.selectedIndex = 0
+			m.browseScrollOffset = 0
 		case "q", "ctrl+c":
 			m.quitting = true
 			return m, tea.Quit

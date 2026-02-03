@@ -44,6 +44,7 @@ type Model struct {
 	browseScrollOffset int      // Scroll offset for browse view (top-most visible item)
 	navPath            []string // Current navigation path for hierarchical subject browsing
 	subjectFilter      string   // Filter pattern for subjects (empty = no filter)
+	flatViewMode       bool     // If true, show all subjects in flat list; if false, show hierarchical
 
 	// View mode
 	viewMode         ViewMode

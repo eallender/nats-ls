@@ -28,6 +28,36 @@ func (m Model) getSubjectsAtCurrentLevel() []SubjectNode {
 		return nil
 	}
 
+	// In flat view mode, return all subjects as leaf nodes (no hierarchy)
+	if m.flatViewMode {
+		var nodes []SubjectNode
+		for _, subject := range subjects {
+			// Apply subject filter if active
+			if m.subjectFilter != "" {
+				// Case-insensitive substring match
+				if !strings.Contains(strings.ToLower(subject.Name), strings.ToLower(m.subjectFilter)) {
+					continue
+				}
+			}
+
+			lastSeen := subject.LastSeen.Load().(time.Time)
+			nodes = append(nodes, SubjectNode{
+				Name:         subject.Name,
+				IsLeaf:       true, // All subjects are leaves in flat mode
+				MessageCount: subject.MessageCount.Load(),
+				LastSeen:     lastSeen,
+			})
+		}
+
+		// Sort alphabetically to maintain consistent order
+		sort.Slice(nodes, func(i, j int) bool {
+			return nodes[i].Name < nodes[j].Name
+		})
+
+		return nodes
+	}
+
+	// Hierarchical view mode - original behavior
 	// Build the current prefix from navPath
 	currentPrefix := strings.Join(m.navPath, ".")
 	if currentPrefix != "" {
