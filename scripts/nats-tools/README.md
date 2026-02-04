@@ -30,23 +30,26 @@ python publish.py --generate-config > config.json
 python publish.py --config config.json
 ```
 
-#### Subject Diversity (NEW!)
+#### Subject Diversity
 
-The publisher now supports multiple ways to generate diverse subject patterns for testing:
+The publisher supports multiple ways to generate diverse subject patterns for testing:
 
 **Random Subject Fuzzing**
 
-Generate random, realistic subject hierarchies:
+Generate random, realistic subject hierarchies. Each publisher creates a fixed pool of random subjects and rotates through them, allowing you to see message flow on the same subjects:
 
 ```bash
-# 10 publishers with random subjects
-python publish.py --normal 10 --normal-fuzz
+# Enable fuzzing for all publishers (pool of 3 subjects per publisher)
+python publish.py --normal 10 --fuzz
+
+# Larger pool for more variety per publisher
+python publish.py --normal 10 --fuzz --fuzz-pool 5
 
 # Control hierarchy depth (1-5 levels deep)
-python publish.py --normal 10 --normal-fuzz --normal-depth-max 5 --normal-depth-min 2
+python publish.py --normal 10 --fuzz --fuzz-depth-max 5 --fuzz-depth-min 2
 
-# Works with JetStream too
-python publish.py --js 5 --js-fuzz --js-depth-max 4
+# Works with all publisher types
+python publish.py --normal 5 --js 5 --fuzz --fuzz-pool 4
 ```
 
 Example subjects generated in fuzz mode:
@@ -54,6 +57,11 @@ Example subjects generated in fuzz mode:
 - `payments.v2.processor.id42`
 - `events.staging.logs`
 - `orders.service.update.v1`
+
+**How Fuzzing Works:**
+- Each publisher generates a pool of N random subjects at startup (default: 3)
+- The publisher rotates through its pool, so you see repeated messages on the same subjects
+- This lets you observe message flow patterns instead of creating thousands of unique subjects
 
 **Multiple Subject Bases**
 
@@ -75,18 +83,25 @@ python publish.py --normal 6 --normal-bases api.v1 api.v2 worker.tasks events.sy
 **Combining Modes**
 
 ```bash
-# 15 publishers with mixed patterns
+# Mix fuzzing with different publisher types
 python publish.py \
-  --normal 10 --normal-fuzz --normal-depth-max 4 --normal-interval 500 \
-  --js 5 --js-bases payments.prod orders.prod events.prod \
-  --verbose
+  --normal 10 --js 5 --fuzz --fuzz-pool 4 --fuzz-depth-max 4 \
+  --normal-interval 500 --verbose
 ```
 
 This creates:
-- 10 normal publishers generating random subjects (1-4 levels deep)
-- 5 JetStream publishers rotating through 3 fixed bases
-- Publishing every 500ms
+- 10 normal publishers, each with a pool of 4 random subjects (1-4 levels deep)
+- 5 JetStream publishers, each with a pool of 4 random subjects
+- Normal publishers publishing every 500ms
 - Verbose output to see what's being published
+
+You can also mix fuzzing with subject bases:
+```bash
+# Some publishers use bases, enable fuzzing for variety
+python publish.py \
+  --normal 5 --normal-bases api.v1 api.v2 \
+  --js 5 --fuzz --fuzz-pool 3
+```
 
 ### Publisher Types
 
@@ -107,6 +122,12 @@ This creates:
 - `--msg-size` - Message payload size in bytes (default: 128)
 - `--generate-config` - Output sample JSON config
 
+#### Fuzzing Options (applies to all publisher types)
+- `--fuzz` - Enable random subject generation for all publishers
+- `--fuzz-pool` - Number of random subjects per publisher (default: 3)
+- `--fuzz-depth-min` - Minimum subject hierarchy depth (default: 1)
+- `--fuzz-depth-max` - Maximum subject hierarchy depth (default: 4)
+
 #### Per-Publisher Type Options
 
 For each publisher type (`normal`, `js`, `reqrep`, `kv`, `obj`):
@@ -115,12 +136,9 @@ For each publisher type (`normal`, `js`, `reqrep`, `kv`, `obj`):
 - `--{type}-subject` - Subject prefix (default varies by type)
 - `--{type}-interval` - Publish interval in ms
 
-**Subject Diversity (Normal & JetStream only):**
+**Subject Bases (Normal & JetStream only):**
 - `--{type}-bases` - List of subject bases to rotate through
   - Example: `--normal-bases api.v1 api.v2 events`
-- `--{type}-fuzz` - Enable random subject generation
-- `--{type}-depth-min` - Minimum subject hierarchy depth (default: 1)
-- `--{type}-depth-max` - Maximum subject hierarchy depth (default: 4)
 
 Run `python publish.py --help` for all options.
 
@@ -129,7 +147,8 @@ Run `python publish.py --help` for all options.
 **Testing Subject Discovery & Filtering**
 ```bash
 # Generate lots of diverse subjects to test nats-ls filtering
-python publish.py --normal 20 --normal-fuzz --normal-depth-max 5
+# 20 publishers × 5 subjects each = 100 unique subjects with repeated messages
+python publish.py --normal 20 --fuzz --fuzz-pool 5 --fuzz-depth-max 5
 ```
 
 **Simulating Multi-Service Architecture**
@@ -142,8 +161,9 @@ python publish.py --normal 10 --normal-bases \
 **Load Testing**
 ```bash
 # High-frequency publishing with many subjects
-python publish.py --normal 50 --normal-fuzz \
-  --normal-interval 100 --normal-depth-max 3
+# 50 publishers × 3 subjects each = 150 subjects with repeated messages
+python publish.py --normal 50 --fuzz \
+  --normal-interval 100 --fuzz-depth-max 3
 ```
 
 **Realistic Production-like Traffic**
@@ -151,7 +171,7 @@ python publish.py --normal 50 --normal-fuzz \
 # Mix of fixed and random subjects at varying rates
 python publish.py \
   --normal 5 --normal-bases api.v1.prod api.v2.prod \
-  --js 10 --js-fuzz --js-depth-max 4 --js-interval 200 \
+  --js 10 --fuzz --fuzz-pool 4 --fuzz-depth-max 4 --js-interval 200 \
   --verbose
 ```
 
