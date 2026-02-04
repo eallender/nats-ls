@@ -43,45 +43,38 @@ func (m Model) renderContentWithHeight(contentHeight int) string {
 		nodes := m.getSubjectsAtCurrentLevel()
 		if len(nodes) > 0 {
 			// Calculate column widths dynamically based on available space
-			var msgColWidth, lastSeenColWidth, subjectColWidth int
-			spacingChars := 2 // spaces between columns
+			var msgColWidth, rateColWidth, ageColWidth, idleColWidth, subjectColWidth int
+			spacingChars := 12 // spaces between columns (3 spaces between each pair)
 
 			// Scale columns based on available width
-			if contentWidth < 30 {
+			if contentWidth < 60 {
 				// Very narrow terminal - use minimal widths
 				msgColWidth = 6
-				lastSeenColWidth = 8
-				subjectColWidth = contentWidth - msgColWidth - lastSeenColWidth - spacingChars
-				if subjectColWidth < 5 {
-					subjectColWidth = 5
-					// Recalculate total to ensure it fits
-					total := subjectColWidth + msgColWidth + lastSeenColWidth + spacingChars
-					if total > contentWidth {
-						// Scale down everything proportionally
-						msgColWidth = 4
-						lastSeenColWidth = 6
-						subjectColWidth = contentWidth - msgColWidth - lastSeenColWidth - spacingChars
-						if subjectColWidth < 3 {
-							subjectColWidth = 3
-						}
-					}
+				rateColWidth = 7
+				ageColWidth = 6
+				idleColWidth = 9
+				subjectColWidth = contentWidth - msgColWidth - rateColWidth - ageColWidth - idleColWidth - spacingChars
+				if subjectColWidth < 8 {
+					subjectColWidth = 8
 				}
 			} else {
-				// Normal width - use standard column sizes
+				// Normal width - use comfortable column sizes
 				msgColWidth = 10
-				lastSeenColWidth = 12
-				subjectColWidth = contentWidth - msgColWidth - lastSeenColWidth - spacingChars
+				rateColWidth = 9
+				ageColWidth = 10
+				idleColWidth = 10
+				subjectColWidth = contentWidth - msgColWidth - rateColWidth - ageColWidth - idleColWidth - spacingChars
 				// Ensure subject column has reasonable minimum
-				if subjectColWidth < 10 {
-					subjectColWidth = 10
+				if subjectColWidth < 15 {
+					subjectColWidth = 15
 				}
 			}
 
 			// Final safety check: ensure total width doesn't exceed contentWidth
-			totalWidth := subjectColWidth + msgColWidth + lastSeenColWidth + spacingChars
+			totalWidth := subjectColWidth + msgColWidth + rateColWidth + ageColWidth + idleColWidth + spacingChars
 			if totalWidth > contentWidth {
 				// Force subjectColWidth to fit within bounds
-				subjectColWidth = contentWidth - msgColWidth - lastSeenColWidth - spacingChars
+				subjectColWidth = contentWidth - msgColWidth - rateColWidth - ageColWidth - idleColWidth - spacingChars
 				if subjectColWidth < 1 {
 					subjectColWidth = 1
 				}
@@ -116,7 +109,7 @@ func (m Model) renderContentWithHeight(contentHeight int) string {
 			}
 
 			// Table header with dynamic column widths
-			headerText := fmt.Sprintf("%-*s %*s %*s", subjectColWidth, "SUBJECT", msgColWidth, "MESSAGES", lastSeenColWidth, "LAST SEEN")
+			headerText := fmt.Sprintf("%-*s   %-*s   %-*s   %-*s   %-*s", subjectColWidth, "SUBJECT", msgColWidth, "MESSAGES", rateColWidth, "RATE", ageColWidth, "AGE", idleColWidth, "LAST SEEN")
 			// Ensure exact width to prevent wrapping
 			headerText = ensureWidth(headerText, contentWidth)
 			header := NavTableHeaderStyle.Render(headerText)
@@ -142,10 +135,12 @@ func (m Model) renderContentWithHeight(contentHeight int) string {
 					displayName = displayName[:maxDisplayLen-3] + "..."
 				}
 
-				// Format last seen as relative time
-				lastSeenStr := formatRelativeTime(node.LastSeen)
+				// Format the new columns
+				rateStr := formatRate(node.MessageCount, node.FirstSeen)
+				ageStr := formatRelativeTime(node.FirstSeen)
+				idleStr := formatIdleTime(node.LastSeen)
 
-				rowText := fmt.Sprintf("%-*s %*d %*s", subjectColWidth, displayName, msgColWidth, node.MessageCount, lastSeenColWidth, lastSeenStr)
+				rowText := fmt.Sprintf("%-*s   %-*d   %-*s   %-*s   %-*s", subjectColWidth, displayName, msgColWidth, node.MessageCount, rateColWidth, rateStr, ageColWidth, ageStr, idleColWidth, idleStr)
 				// Ensure exact width to prevent wrapping
 				rowText = ensureWidth(rowText, contentWidth)
 				row := rowStyle.Render(rowText)

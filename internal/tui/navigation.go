@@ -14,6 +14,7 @@ type SubjectNode struct {
 	Name         string
 	IsLeaf       bool // true if this is a complete subject, false if it's a prefix
 	MessageCount int64
+	FirstSeen    time.Time
 	LastSeen     time.Time
 }
 
@@ -45,6 +46,7 @@ func (m Model) getSubjectsAtCurrentLevel() []SubjectNode {
 				Name:         subject.Name,
 				IsLeaf:       true, // All subjects are leaves in flat mode
 				MessageCount: subject.MessageCount.Load(),
+				FirstSeen:    subject.FirstSeen,
 				LastSeen:     lastSeen,
 			})
 		}
@@ -100,6 +102,10 @@ func (m Model) getSubjectsAtCurrentLevel() []SubjectNode {
 				if isLeaf {
 					existing.IsLeaf = true
 				}
+				// Track the earliest FirstSeen
+				if subject.FirstSeen.Before(existing.FirstSeen) {
+					existing.FirstSeen = subject.FirstSeen
+				}
 				// Track the most recent LastSeen
 				if lastSeen.After(existing.LastSeen) {
 					existing.LastSeen = lastSeen
@@ -109,6 +115,7 @@ func (m Model) getSubjectsAtCurrentLevel() []SubjectNode {
 					Name:         nextLevel,
 					IsLeaf:       isLeaf,
 					MessageCount: subject.MessageCount.Load(),
+					FirstSeen:    subject.FirstSeen,
 					LastSeen:     lastSeen,
 				}
 			}

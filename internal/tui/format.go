@@ -33,6 +33,57 @@ func formatRelativeTime(t time.Time) string {
 	}
 }
 
+// formatIdleTime formats idle duration without "ago" suffix (e.g., "2s", "5m", "now")
+func formatIdleTime(t time.Time) string {
+	if t.IsZero() {
+		return "never"
+	}
+
+	duration := time.Since(t)
+
+	switch {
+	case duration < time.Second:
+		return "now"
+	case duration < time.Minute:
+		return fmt.Sprintf("%ds", int(duration.Seconds()))
+	case duration < time.Hour:
+		return fmt.Sprintf("%dm", int(duration.Minutes()))
+	case duration < 24*time.Hour:
+		return fmt.Sprintf("%dh", int(duration.Hours()))
+	default:
+		return fmt.Sprintf("%dd", int(duration.Hours()/24))
+	}
+}
+
+// formatRate formats message rate as msg/sec or msg/min
+func formatRate(messageCount int64, firstSeen time.Time) string {
+	if firstSeen.IsZero() || messageCount == 0 {
+		return "0/s"
+	}
+
+	duration := time.Since(firstSeen).Seconds()
+	if duration < 1 {
+		duration = 1
+	}
+
+	rate := float64(messageCount) / duration
+
+	// Show as msg/min if rate is very low
+	if rate < 1.0 {
+		ratePerMin := rate * 60
+		if ratePerMin < 0.1 {
+			return "0/s"
+		}
+		return fmt.Sprintf("%.1f/m", ratePerMin)
+	}
+
+	// Show as msg/sec
+	if rate < 10 {
+		return fmt.Sprintf("%.1f/s", rate)
+	}
+	return fmt.Sprintf("%.0f/s", rate)
+}
+
 // insertBorderTitle inserts a centered title into the top border of a rendered box
 // borderWidth should be the expected total width of the border (including corners)
 func insertBorderTitle(rendered, title string, borderWidth int) string {
