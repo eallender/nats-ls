@@ -10,12 +10,11 @@ import (
 
 // renderContentWithHeight creates the main content area with a single full-width panel
 func (m Model) renderContentWithHeight(contentHeight int) string {
-	// Enforce minimum content height
-	contentHeight = EnsureMinimumContentHeight(contentHeight, NavStyle)
-
-	// Calculate content width and height
+	// Calculate content width and the actual content area (excluding frame)
+	// Note: Don't use EnsureMinimumContentHeight - trust the exact space from View()
 	contentWidth := GetContentWidth(m.width)
-	contentHeightAdjusted := MaxContentHeight(contentHeight, NavStyle)
+	// MaxContentHeight returns space available inside the box (minus padding/borders)
+	innerContentHeight := MaxContentHeight(contentHeight, NavStyle)
 
 	// Build main content with hierarchical subjects as a table
 	var mainText string
@@ -88,14 +87,19 @@ func (m Model) renderContentWithHeight(contentHeight int) string {
 				}
 			}
 
-			// Calculate how many rows we can show (reserve 1 line for header, 1 for scroll indicator)
-			availableLines := contentHeightAdjusted - 2
+			// Calculate visible range of subjects
+			totalNodes := len(nodes)
+
+			// Reserve space: 1 line for header, 1 line for potential scroll indicator
+			// Always reserve space for scroll indicator to prevent layout shifts
+			availableLines := innerContentHeight - 2
 			if availableLines < 1 {
 				availableLines = 1
 			}
 
-			// Calculate visible range of subjects
-			totalNodes := len(nodes)
+			// Determine if we need to show scroll indicator
+			needsScrollIndicator := totalNodes > availableLines
+
 			startIdx := m.browseScrollOffset
 			if startIdx < 0 {
 				startIdx = 0
@@ -148,10 +152,13 @@ func (m Model) renderContentWithHeight(contentHeight int) string {
 				mainText += row + "\n"
 			}
 
-			// Add scroll indicator if there are more items
-			if totalNodes > availableLines {
+			// Add scroll indicator if needed (last row's \n naturally separates it)
+			if needsScrollIndicator {
 				scrollInfo := fmt.Sprintf("Showing %d-%d of %d", startIdx+1, endIdx, totalNodes)
 				mainText += NavTableHeaderStyle.Render(ensureWidth(scrollInfo, contentWidth))
+			} else {
+				// Add empty line to maintain consistent height
+				mainText += NavTableHeaderStyle.Render(ensureWidth("", contentWidth))
 			}
 		} else {
 			mainText += ensureWidth("No subjects discovered yet...", contentWidth)
@@ -163,7 +170,8 @@ func (m Model) renderContentWithHeight(contentHeight int) string {
 	// Main panel - Don't set Width() since our content is already sized correctly
 	// The Width() method causes lipgloss to try to wrap text that contains ANSI codes
 	// Our mainText lines are already exactly contentWidth wide
-	boxStyle := NavStyle.Height(contentHeightAdjusted)
+	// Use Height with contentHeight to fill the allocated space exactly
+	boxStyle := NavStyle.Height(contentHeight)
 
 	// Add border title if we have a path
 	if borderTitle != "" {

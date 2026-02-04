@@ -38,7 +38,7 @@ func (m Model) View() string {
 	// Calculate available height for content based on actual component heights
 	headerHeight := lipgloss.Height(header)
 	commandBarHeight := lipgloss.Height(commandBar)
-	contentHeight := m.height - headerHeight - commandBarHeight
+	contentHeight := m.height - headerHeight - commandBarHeight - 1 // Reduce by 1 to prevent header overflow
 
 	// Ensure we don't create content that's too tall
 	if contentHeight < 1 {
@@ -118,7 +118,7 @@ func (m Model) renderHeader() string {
 		statusLines...,
 	))
 
-	var controls1, controlsInfo1, controls2, controlsInfo2 string
+	var controls1, controlsInfo1, controls2, controlsInfo2, controls3, controlsInfo3 string
 
 	if m.viewMode == ViewModeMessageInspect {
 		// Message inspect view controls
@@ -218,7 +218,6 @@ func (m Model) renderHeader() string {
 				lipgloss.Left,
 				"",
 				"<l>",
-				"<c>",
 				"<:>",
 				"<q>",
 			))
@@ -227,9 +226,22 @@ func (m Model) renderHeader() string {
 			lipgloss.Left,
 			"",
 			"logs",
-			"toggle view",
 			"filter",
 			"quit",
+		))
+
+		controls3 = HeaderControlStyle.
+			MarginLeft(3).
+			Render(lipgloss.JoinVertical(
+				lipgloss.Left,
+				"",
+				"<c>",
+			))
+
+		controlsInfo3 = HeaderControlStyleInfo.Render(lipgloss.JoinVertical(
+			lipgloss.Left,
+			"",
+			"toggle view",
 		))
 	}
 
@@ -242,6 +254,8 @@ func (m Model) renderHeader() string {
 		controlsInfo1,
 		controls2,
 		controlsInfo2,
+		controls3,
+		controlsInfo3,
 	)
 
 	// Apply container style with padding and width

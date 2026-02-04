@@ -65,7 +65,7 @@ var (
 
 	NavStyle = lipgloss.NewStyle().
 		PaddingTop(0).
-		PaddingBottom(1).
+		PaddingBottom(0).
 		PaddingLeft(2).
 		PaddingRight(2).
 		BorderStyle(lipgloss.NormalBorder()).
