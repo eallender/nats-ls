@@ -44,8 +44,6 @@ var (
 				Foreground(ColorMuted).
 				Padding(0, 1)
 
-
-
 	HeaderControlStyle = lipgloss.NewStyle().
 				Foreground(ColorInfo).
 				MarginRight(1)
@@ -64,12 +62,12 @@ var (
 				Bold(true)
 
 	NavStyle = lipgloss.NewStyle().
-		PaddingTop(0).
-		PaddingBottom(0).
-		PaddingLeft(2).
-		PaddingRight(2).
-		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(ColorMuted)
+			PaddingTop(0).
+			PaddingBottom(0).
+			PaddingLeft(2).
+			PaddingRight(2).
+			BorderStyle(lipgloss.NormalBorder()).
+			BorderForeground(ColorMuted)
 
 	NavTableHeaderStyle = lipgloss.NewStyle().
 				Foreground(ColorPrimary).
@@ -109,7 +107,6 @@ var (
 	LogDataStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("252"))
 
-
 	LogEmptyStyle = lipgloss.NewStyle().
 			Foreground(ColorMuted).
 			Italic(true)
@@ -138,11 +135,11 @@ var (
 				Foreground(ColorWarning)
 
 	InspectBoolStyle = lipgloss.NewStyle().
-			Foreground(ColorPrimary)
+				Foreground(ColorPrimary)
 
 	InspectNullStyle = lipgloss.NewStyle().
-			Foreground(ColorMuted).
-			Italic(true)
+				Foreground(ColorMuted).
+				Italic(true)
 
 	InspectBracketStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("252"))

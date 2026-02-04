@@ -40,6 +40,11 @@ func (m Model) View() string {
 	commandBarHeight := lipgloss.Height(commandBar)
 	contentHeight := m.height - headerHeight - commandBarHeight - 1 // Reduce by 1 to prevent header overflow
 
+	// When command bar is active, header is 1 line shorter, so reduce content by 1 to maintain same size
+	if m.commandBarActive {
+		contentHeight--
+	}
+
 	// Ensure we don't create content that's too tall
 	if contentHeight < 1 {
 		contentHeight = 1
@@ -111,7 +116,12 @@ func (m Model) renderHeader() string {
 	if viewModeText != "" {
 		statusLines = append(statusLines, viewModeText)
 	}
-	statusLines = append(statusLines, "")
+	// Add spacing at bottom - reduce by one line when command bar is active
+	if m.commandBarActive {
+		statusLines = append(statusLines, "")
+	} else {
+		statusLines = append(statusLines, "", "")
+	}
 
 	statusInfo := HeaderStatusInfoStyle.Render(lipgloss.JoinVertical(
 		lipgloss.Left,
