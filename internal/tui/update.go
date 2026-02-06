@@ -7,19 +7,30 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 // getBrowseAvailableLines calculates how many subject rows can be displayed
 func (m Model) getBrowseAvailableLines() int {
-	frameHeight := GetFrameHeight(NavStyle)
-	headerHeight := 5 // Approximate header height
-	contentHeight := m.height - headerHeight
-	minRequiredHeight := MinContentHeight + frameHeight
-	if contentHeight < minRequiredHeight {
-		contentHeight = minRequiredHeight
+	// Calculate exactly how view_browse.go does it
+	// This must match the rendering logic to prevent selection going off-screen
+	header := m.renderHeader()
+	commandBar := m.renderCommandBar()
+	headerHeight := lipgloss.Height(header)
+	commandBarHeight := lipgloss.Height(commandBar)
+	contentHeight := m.height - headerHeight - commandBarHeight - 1
+
+	if m.commandBarActive {
+		contentHeight--
 	}
-	contentHeightAdjusted := MaxContentHeight(contentHeight, NavStyle)
-	availableLines := contentHeightAdjusted - 2 // header + scroll indicator
+
+	if contentHeight < 1 {
+		contentHeight = 1
+	}
+
+	// This matches view_browse.go's calculation
+	innerContentHeight := MaxContentHeight(contentHeight, NavStyle)
+	availableLines := innerContentHeight - 2 // header + scroll indicator/stats line
 	if availableLines < 1 {
 		availableLines = 1
 	}
