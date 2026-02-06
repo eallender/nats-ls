@@ -281,8 +281,9 @@ async def run_js_publisher(
     # Generate subject pool for fuzzing mode
     subject_pool = []
     if config.fuzz:
+        # When fuzzing, prepend the JS prefix to ensure subjects match the stream
         subject_pool = [
-            generate_random_subject(config.fuzz_depth_min, config.fuzz_depth_max)
+            f"{config.js_subject_prefix}.{generate_random_subject(config.fuzz_depth_min, config.fuzz_depth_max)}"
             for _ in range(config.fuzz_pool_size)
         ]
         if config.verbose:
@@ -490,8 +491,9 @@ def print_final_stats(stats: Stats):
 async def ensure_stream(js: nats.js.JetStreamContext, name: str, subject_pattern: str, is_fuzzing: bool = False):
     """Ensure a JetStream stream exists."""
     try:
-        # For fuzzing, use wildcard to catch all subjects
-        subjects = [">"] if is_fuzzing else [f"{subject_pattern}.>"]
+        # Use subject prefix with wildcard to avoid conflicts with KV/Object Store
+        # Never use ">" as it claims ALL subjects and conflicts with $KV.> and $O.>
+        subjects = [f"{subject_pattern}.>"]
         await js.add_stream(
             name=name,
             subjects=subjects,
