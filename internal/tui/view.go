@@ -128,7 +128,7 @@ func (m Model) renderHeader() string {
 		statusLines...,
 	))
 
-	var controls1, controlsInfo1, controls2, controlsInfo2, controls3, controlsInfo3 string
+	var controls1, controlsInfo1, controls2, controlsInfo2 string
 
 	if m.viewMode == ViewModeMessageInspect {
 		// Message inspect view controls
@@ -211,7 +211,7 @@ func (m Model) renderHeader() string {
 			"",
 			"<enter>",
 			"<esc>",
-			"<↑↓>",
+			"<c>",
 		))
 
 		controlsInfo1 = HeaderControlStyleInfo.Render(lipgloss.JoinVertical(
@@ -219,7 +219,7 @@ func (m Model) renderHeader() string {
 			"",
 			"select",
 			"back",
-			"navigate",
+			"toggle view",
 		))
 
 		controls2 = HeaderControlStyle.
@@ -239,20 +239,6 @@ func (m Model) renderHeader() string {
 			"filter",
 			"quit",
 		))
-
-		controls3 = HeaderControlStyle.
-			MarginLeft(3).
-			Render(lipgloss.JoinVertical(
-				lipgloss.Left,
-				"",
-				"<c>",
-			))
-
-		controlsInfo3 = HeaderControlStyleInfo.Render(lipgloss.JoinVertical(
-			lipgloss.Left,
-			"",
-			"toggle view",
-		))
 	}
 
 	// Combine logo and status horizontally
@@ -264,8 +250,6 @@ func (m Model) renderHeader() string {
 		controlsInfo1,
 		controls2,
 		controlsInfo2,
-		controls3,
-		controlsInfo3,
 	)
 
 	// Apply container style with padding and width
