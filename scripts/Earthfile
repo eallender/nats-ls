@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Evan Allender
+VERSION 0.8
+
+build-publisher:
+    FROM python:3.12-slim
+    WORKDIR /app
+
+    RUN pip install --no-cache-dir uv
+    COPY nats-tools/pyproject.toml nats-tools/uv.lock ./
+    RUN uv sync --frozen --no-dev
+    COPY nats-tools/publish.py ./
+    RUN chmod +x publish.py
+
+    ENTRYPOINT ["uv", "run", "--no-sync", "python", "publish.py"]
+    CMD ["--help"]
+
+    SAVE IMAGE nats-publisher:latest

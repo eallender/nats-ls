@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Evan Allender
+version: '3.8'
+
+services:
+  # NATS Server with JetStream enabled
+  # Accessible from host at: nats://localhost:4222
+  nats:
+    image: nats:latest
+    container_name: nats
+    command: ["-js"]
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    volumes:
+      - nats-data:/tmp/nats/jetstream
+
+  # NATS Box - Utility container with NATS CLI tools
+  nats-box:
+    image: natsio/nats-box:latest
+    container_name: nats-box
+    network_mode: "container:nats"
+    command: >
+      sh -c "echo 'NATS Box Ready. Connect with: docker exec -it nats-box sh' && tail -f /dev/null"
+
+  # NATS Test Publisher - NLS Python test tool
+  # Build with: earthly +build-publisher
+  nats-publisher:
+    image: nats-publisher:latest
+    container_name: nats-publisher
+    network_mode: "container:nats"
+    environment:
+      - NATS_URL=nats://localhost:4222
+    # Default configuration: 5 normal publishers with fuzzing
+    # Override with: docker-compose run nats-publisher --normal 10 --js 5 --fuzz
+    command: ["--url", "nats://localhost:4222", "--normal", "5", "--fuzz", "--verbose"]
+
+volumes:
+  nats-data:

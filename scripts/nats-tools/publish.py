@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Evan Allender
 """
 NATS Test Publisher - A flexible tool to spin up multiple NATS publishers
 for testing message ingestion in tools like natsls.
@@ -47,7 +48,9 @@ class Config:
     # Normal publishers
     normal_publishers: int = 0
     normal_subject_prefix: str = "test.normal"
-    normal_subject_bases: list[str] = field(default_factory=list)  # Multiple bases for variety
+    normal_subject_bases: list[str] = field(
+        default_factory=list
+    )  # Multiple bases for variety
     normal_interval_ms: int = 1000
 
     # JetStream publishers
@@ -142,7 +145,9 @@ def generate_subject_component() -> str:
     """Generate a random subject component (token between dots)."""
     # Mix of realistic patterns
     patterns = [
-        lambda: random.choice(["users", "orders", "payments", "events", "logs", "metrics", "alerts"]),
+        lambda: random.choice(
+            ["users", "orders", "payments", "events", "logs", "metrics", "alerts"]
+        ),
         lambda: random.choice(["api", "service", "worker", "handler", "processor"]),
         lambda: random.choice(["v1", "v2", "v3", "prod", "staging", "dev"]),
         lambda: random.choice(["create", "update", "delete", "read", "list"]),
@@ -488,7 +493,12 @@ def print_final_stats(stats: Stats):
     print("=" * 42)
 
 
-async def ensure_stream(js: nats.js.JetStreamContext, name: str, subject_pattern: str, is_fuzzing: bool = False):
+async def ensure_stream(
+    js: nats.js.JetStreamContext,
+    name: str,
+    subject_pattern: str,
+    is_fuzzing: bool = False,
+):
     """Ensure a JetStream stream exists."""
     try:
         # Use subject prefix with wildcard to avoid conflicts with KV/Object Store
@@ -610,7 +620,9 @@ async def main(config: Config):
 
     # JetStream publishers
     if config.js_publishers > 0:
-        await ensure_stream(js, config.js_stream_name, config.js_subject_prefix, config.fuzz)
+        await ensure_stream(
+            js, config.js_stream_name, config.js_subject_prefix, config.fuzz
+        )
         for i in range(config.js_publishers):
             tasks.append(
                 asyncio.create_task(run_js_publisher(js, i, config, stats, stop_event))
@@ -707,7 +719,9 @@ Examples:
     parser.add_argument("--config", dest="config_file", help="Path to JSON config file")
 
     # Fuzzing options (applies to all publisher types)
-    fuzz_group = parser.add_argument_group("Fuzzing Options (applies to all publishers)")
+    fuzz_group = parser.add_argument_group(
+        "Fuzzing Options (applies to all publishers)"
+    )
     fuzz_group.add_argument(
         "--fuzz",
         action="store_true",
