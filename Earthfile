@@ -26,25 +26,25 @@ deps:
 build-linux-amd64:
     FROM +deps
     COPY . .
-    RUN GOOS=linux GOARCH=amd64 go build -ldflags="-X github.com/eallender/nats-ls/internal/config.Version=$VERSION" -o nls-linux-amd64 .
-    SAVE ARTIFACT nls-linux-amd64 AS LOCAL nls
+    RUN GOOS=linux GOARCH=amd64 go build -ldflags="-X github.com/eallender/nats-ls/internal/config.Version=$VERSION" -o nls-linux-amd64 ./cmd/nls
+    SAVE ARTIFACT nls-linux-amd64
 
 build-linux-arm64:
     FROM +deps
     COPY . .
-    RUN GOOS=linux GOARCH=arm64 go build -ldflags="-X github.com/eallender/nats-ls/internal/config.Version=$VERSION" -o nls-linux-arm64 .
+    RUN GOOS=linux GOARCH=arm64 go build -ldflags="-X github.com/eallender/nats-ls/internal/config.Version=$VERSION" -o nls-linux-arm64 ./cmd/nls
     SAVE ARTIFACT nls-linux-arm64
 
 build-darwin-amd64:
     FROM +deps
     COPY . .
-    RUN GOOS=darwin GOARCH=amd64 go build -ldflags="-X github.com/eallender/nats-ls/internal/config.Version=$VERSION" -o nls-darwin-amd64 .
+    RUN GOOS=darwin GOARCH=amd64 go build -ldflags="-X github.com/eallender/nats-ls/internal/config.Version=$VERSION" -o nls-darwin-amd64 ./cmd/nls
     SAVE ARTIFACT nls-darwin-amd64
 
 build-darwin-arm64:
     FROM +deps
     COPY . .
-    RUN GOOS=darwin GOARCH=arm64 go build -ldflags="-X github.com/eallender/nats-ls/internal/config.Version=$VERSION" -o nls-darwin-arm64 .
+    RUN GOOS=darwin GOARCH=arm64 go build -ldflags="-X github.com/eallender/nats-ls/internal/config.Version=$VERSION" -o nls-darwin-arm64 ./cmd/nls
     SAVE ARTIFACT nls-darwin-arm64
 
 lint:
