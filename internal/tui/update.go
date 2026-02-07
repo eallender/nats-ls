@@ -139,7 +139,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						subjectPath = selectedNode.Name
 					}
 					// Start watching the subject
-					m.viewer.Watch(subjectPath)
+					if err := m.viewer.Watch(subjectPath); err != nil {
+						// Log error but continue - don't crash the TUI
+						return m, nil
+					}
 					m.watchingSubject = subjectPath
 					m.viewMode = ViewModeLog
 					m.logScrollOffset = 0
@@ -163,7 +166,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					subjectPath += ".>"
 				}
 				// Start watching the subject
-				m.viewer.Watch(subjectPath)
+				if err := m.viewer.Watch(subjectPath); err != nil {
+					// Log error but continue - don't crash the TUI
+					return m, nil
+				}
 				m.watchingSubject = subjectPath
 				m.viewMode = ViewModeLog
 				m.logScrollOffset = 0
@@ -226,7 +232,10 @@ func (m Model) handleLogViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "esc":
 		// Go back to browse view
 		if m.viewer != nil {
-			m.viewer.Watch("") // Stop watching
+			if err := m.viewer.Watch(""); err != nil {
+				// Log error but continue - don't crash the TUI
+				return m, nil
+			}
 		}
 		m.viewMode = ViewModeBrowse
 		m.watchingSubject = ""
@@ -313,7 +322,10 @@ func (m Model) handleLogViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// Toggle pause/resume autoscroll
 		if m.viewer != nil {
 			if m.viewer.IsPaused() {
-				m.viewer.Resume()
+				if err := m.viewer.Resume(); err != nil {
+					// Log error but continue - don't crash the TUI
+					return m, nil
+				}
 				// Reset to latest messages when resuming
 				m.logScrollOffset = 0
 				m.logSelectedIndex = 0
@@ -386,7 +398,10 @@ func (m Model) handleMessageInspectKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// Toggle pause/resume
 		if m.viewer != nil {
 			if m.viewer.IsPaused() {
-				m.viewer.Resume()
+				if err := m.viewer.Resume(); err != nil {
+					// Log error but continue - don't crash the TUI
+					return m, nil
+				}
 			} else {
 				m.viewer.Pause()
 			}

@@ -127,7 +127,10 @@ func generateDefaultConfig() error {
 		fmt.Printf("Config file already exists at: %s\n", configPath)
 		fmt.Print("Overwrite? (y/N): ")
 		var response string
-		fmt.Scanln(&response)
+		if _, err := fmt.Scanln(&response); err != nil {
+			fmt.Println("\nAborted.")
+			return nil
+		}
 		if response != "y" && response != "Y" {
 			fmt.Println("Aborted.")
 			return nil

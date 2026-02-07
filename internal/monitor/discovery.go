@@ -38,7 +38,9 @@ func (d *Discovery) Start(ctx context.Context, maxMessages int, maxStorageMB int
 		return err
 	}
 
-	d.sub.SetPendingLimits(maxMessages, maxStorageMB*1024*1024)
+	if err := d.sub.SetPendingLimits(maxMessages, maxStorageMB*1024*1024); err != nil {
+		return err
+	}
 
 	go func() {
 		<-ctx.Done()
@@ -64,7 +66,9 @@ func (d *Discovery) Stop() {
 	defer d.mu.Unlock()
 
 	if d.sub != nil {
-		d.sub.Unsubscribe()
+		if err := d.sub.Unsubscribe(); err != nil {
+			logger.Log.Warn("Failed to unsubscribe during discovery stop", "error", err)
+		}
 		d.sub = nil
 	}
 	logger.Log.Debug("Discovery has been stopped")

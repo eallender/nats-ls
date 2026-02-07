@@ -213,7 +213,8 @@ func isPrintableText(data []byte) bool {
 	total := 0
 
 	for i := 0; i < len(data); {
-		r, size := rune(data[i]), 1
+		var r rune
+		var size int
 		if data[i] >= 0x80 {
 			// Multi-byte UTF-8
 			var ok bool
@@ -226,6 +227,7 @@ func isPrintableText(data []byte) bool {
 			}
 		} else {
 			r = rune(data[i])
+			size = 1
 		}
 
 		total++

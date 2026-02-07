@@ -36,7 +36,9 @@ func (v *Viewer) Watch(subject string) error {
 	}
 
 	if v.sub != nil {
-		v.sub.Unsubscribe()
+		if err := v.sub.Unsubscribe(); err != nil {
+			logger.Log.Warn("Failed to unsubscribe during watch change", "error", err)
+		}
 		v.sub = nil
 	}
 
@@ -66,7 +68,9 @@ func (v *Viewer) Stop() {
 	defer v.mu.Unlock()
 
 	if v.sub != nil {
-		v.sub.Unsubscribe()
+		if err := v.sub.Unsubscribe(); err != nil {
+			logger.Log.Warn("Failed to unsubscribe during viewer stop", "error", err)
+		}
 		v.sub = nil
 	}
 	if v.messages.Count() != 0 {
@@ -95,7 +99,9 @@ func (v *Viewer) Pause() {
 	}
 
 	v.paused = true
-	v.sub.Unsubscribe()
+	if err := v.sub.Unsubscribe(); err != nil {
+		logger.Log.Warn("Failed to unsubscribe during pause", "error", err)
+	}
 	v.sub = nil
 	logger.Log.Debug("Viewer paused")
 }
