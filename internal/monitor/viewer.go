@@ -11,12 +11,12 @@ import (
 )
 
 type Viewer struct {
-	nc             *nats.Conn
-	sub            *nats.Subscription
-	mu             sync.Mutex
-	messages       *MessageStore
-	paused         bool
-	pausedSubject  string // Subject to resubscribe to when resuming
+	nc            *nats.Conn
+	sub           *nats.Subscription
+	mu            sync.Mutex
+	messages      *MessageStore
+	paused        bool
+	pausedSubject string // Subject to resubscribe to when resuming
 }
 
 func NewViewer(nc *nats.Conn, maxMessages int) *Viewer {

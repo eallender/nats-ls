@@ -30,14 +30,14 @@ type Model struct {
 	quitting bool
 
 	// Connection state
-	nc                  *nats.Conn
-	serverURL           string
-	config              *config.Config
+	nc                   *nats.Conn
+	serverURL            string
+	config               *config.Config
 	connectingInProgress bool // Prevents multiple simultaneous connection attempts
 
 	// Command bar state
-	commandBarActive     bool
-	commandInput         string
+	commandBarActive      bool
+	commandInput          string
 	commandPreviousFilter string // Previous filter value before opening command bar
 
 	// Navigation state
