@@ -18,16 +18,18 @@ import (
 func (m Model) Init() tea.Cmd {
 	// If not connected, start trying to connect
 	if !m.IsConnected() {
-		return m.tryConnect
+		// Note: connectingInProgress will be set in the first Update cycle
+		return m.tryConnect()
 	}
 	// Start the tick loop to refresh the UI
-	return tickCmd
+	return tickCmd()
 }
 
 // createNATSConnection creates a NATS connection with standard handlers
 func createNATSConnection(cfg *config.Config) (*nats.Conn, error) {
 	return nats.Connect(
 		cfg.NatsAddress,
+		nats.Timeout(3*time.Second), // Timeout for initial connection attempt
 		nats.MaxReconnects(cfg.NatsMaxReconnects),
 		nats.ReconnectWait(time.Duration(cfg.NatsReconnectWaitSeconds)*time.Second),
 		nats.DisconnectErrHandler(func(nc *nats.Conn, err error) {
@@ -46,37 +48,47 @@ func createNATSConnection(cfg *config.Config) (*nats.Conn, error) {
 	)
 }
 
-// tryConnect attempts to connect to NATS and returns a command
-func (m Model) tryConnect() tea.Msg {
-	nc, err := createNATSConnection(m.config)
+// tryConnect attempts to connect to NATS asynchronously and returns a command
+func (m Model) tryConnect() tea.Cmd {
+	return func() tea.Msg {
+		nc, err := createNATSConnection(m.config)
 
-	if err != nil {
-		logger.Log.Debug("Connection attempt failed", "error", err)
-		return connectAttemptMsg{nc: nil, err: err}
-	}
+		if err != nil {
+			logger.Log.Debug("Connection attempt failed", "error", err)
+			return connectAttemptMsg{nc: nil, err: err}
+		}
 
-	logger.Log.Info("Connected to NATS", "address", m.config.NatsAddress)
-	viewer := monitor.NewViewer(nc, m.config.NatsViewerMessageLimit)
-	discovery := monitor.NewDiscovery(nc)
+		logger.Log.Info("Connected to NATS", "address", m.config.NatsAddress)
+		viewer := monitor.NewViewer(nc, m.config.NatsViewerMessageLimit)
+		discovery := monitor.NewDiscovery(nc)
 
-	// Start discovery to listen for all subjects
-	ctx := context.Background()
-	if err := discovery.Start(ctx, m.config.NatsDiscoveryPendingLimit, m.config.NatsDiscoveryStorageLimitMB); err != nil {
-		logger.Log.Warn("Failed to start discovery", "error", err)
-	}
+		// Start discovery to listen for all subjects
+		ctx := context.Background()
+		if err := discovery.Start(ctx, m.config.NatsDiscoveryPendingLimit, m.config.NatsDiscoveryStorageLimitMB); err != nil {
+			logger.Log.Warn("Failed to start discovery", "error", err)
+		}
 
-	return connectAttemptMsg{
-		nc:        nc,
-		viewer:    viewer,
-		discovery: discovery,
-		err:       nil,
+		return connectAttemptMsg{
+			nc:        nc,
+			viewer:    viewer,
+			discovery: discovery,
+			err:       nil,
+		}
 	}
 }
 
-// tickCmd sends a tick message after a delay to refresh the UI and retry connections
-func tickCmd() tea.Msg {
-	time.Sleep(1 * time.Second)
-	return tickMsg(time.Now())
+// tickCmd returns a command that sends a tick message after a delay to refresh the UI and retry connections
+func tickCmd() tea.Cmd {
+	return tea.Tick(1*time.Second, func(t time.Time) tea.Msg {
+		return tickMsg(t)
+	})
+}
+
+// tickCmdSlow returns a command with a longer delay for connection retries
+func tickCmdSlow() tea.Cmd {
+	return tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+		return tickMsg(t)
+	})
 }
 
 // IsConnected checks if we're connected to NATS

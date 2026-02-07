@@ -181,23 +181,26 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 	case connectAttemptMsg:
+		m.connectingInProgress = false // Connection attempt completed
 		if msg.err != nil {
-			// Connection failed, retry after a delay
-			return m, tickCmd
+			// Connection failed, use slow tick for retry
+			return m, tickCmdSlow()
 		}
 		// Connection successful, update model
 		m.nc = msg.nc
 		m.viewer = msg.viewer
 		m.discovery = msg.discovery
 		// Start the tick loop to refresh the UI
-		return m, tickCmd
+		return m, tickCmd()
 	case tickMsg:
-		// If not connected, try to reconnect
-		if !m.IsConnected() {
-			return m, tea.Batch(m.tryConnect, tickCmd)
+		// If not connected and no attempt in progress, try to reconnect
+		if !m.IsConnected() && !m.connectingInProgress {
+			m.connectingInProgress = true
+			// Start connection attempt with slow tick
+			return m, tea.Batch(m.tryConnect(), tickCmdSlow())
 		}
 		// Otherwise just refresh the UI periodically to show new subjects
-		return m, tickCmd
+		return m, tickCmd()
 	}
 	return m, nil
 }
