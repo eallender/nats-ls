@@ -50,6 +50,9 @@ const (
 	AppDescriptionLong = "TUI for inspecting message flow within a NATS server"
 )
 
+// Version can be overridden at build time using -ldflags
+var Version = "dev"
+
 // GetConfigDir returns the configuration directory path (~/.nats-ls)
 func GetConfigDir() (string, error) {
 	homeDir, err := os.UserHomeDir()

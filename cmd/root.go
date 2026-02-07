@@ -20,6 +20,8 @@ var (
 	cfg *config.Config
 	// Flag to generate default config
 	createConfig bool
+	// Flag to show version
+	showVersion bool
 	// NATS connection override flags
 	natsServer string
 	natsURL    string
@@ -33,6 +35,12 @@ var rootCmd = &cobra.Command{
 	Long:  config.AppDescriptionLong,
 
 	Run: func(cmd *cobra.Command, args []string) {
+		// If --version flag is set, print version and exit
+		if showVersion {
+			fmt.Printf("%s version v%s\n", config.AppName, config.Version)
+			return
+		}
+
 		// If --generate-config flag is set, generate config and exit
 		if createConfig {
 			if err := generateDefaultConfig(); err != nil {
@@ -65,6 +73,7 @@ func Execute() {
 
 func init() {
 	// CLI Flags
+	rootCmd.Flags().BoolVarP(&showVersion, "version", "v", false, "Show version information")
 	rootCmd.Flags().BoolVar(&createConfig, "generate-config", false, "Generate default config file at ~/.nats-ls/config.yaml and exit")
 
 	// NATS connection flags (override config file)
