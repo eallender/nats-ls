@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  earthly-ci:
+    name: Earthly CI
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Earthly
+      uses: earthly/actions/setup-earthly@v1
+      with:
+        version: latest
+
+    - name: Run Earthly CI
+      run: earthly --ci +ci
