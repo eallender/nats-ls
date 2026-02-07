@@ -1,0 +1,10 @@
+# Earthly ignore file
+# Include source files by default, exclude only build artifacts
+
+build/
+.git/
+.github/
+*.test
+*.out
+nls
+nls-*

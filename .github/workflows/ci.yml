@@ -15,6 +15,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Set up Earthly
       uses: earthly/actions/setup-earthly@v1
@@ -22,4 +24,4 @@ jobs:
         version: latest
 
     - name: Run Earthly CI
-      run: earthly --ci +ci
+      run: earthly --ci --allow-privileged +ci

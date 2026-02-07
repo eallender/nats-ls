@@ -34,10 +34,10 @@ jobs:
       - name: Copy artifacts
         run: |
           mkdir -p dist
-          earthly artifact --ci +build-linux-amd64/nls-linux-amd64 dist/
-          earthly artifact --ci +build-linux-arm64/nls-linux-arm64 dist/
-          earthly artifact --ci +build-darwin-amd64/nls-darwin-amd64 dist/
-          earthly artifact --ci +build-darwin-arm64/nls-darwin-arm64 dist/
+          earthly --ci --artifact +build-linux-amd64/nls-linux-amd64 dist/nls-linux-amd64
+          earthly --ci --artifact +build-linux-arm64/nls-linux-arm64 dist/nls-linux-arm64
+          earthly --ci --artifact +build-darwin-amd64/nls-darwin-amd64 dist/nls-darwin-amd64
+          earthly --ci --artifact +build-darwin-arm64/nls-darwin-arm64 dist/nls-darwin-arm64
 
       - name: Create checksums
         run: |
