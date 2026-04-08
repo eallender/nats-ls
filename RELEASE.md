@@ -4,7 +4,7 @@ This project uses [semantic-release](https://semantic-release.gitbook.io/) to au
 
 ## Branching Strategy
 
-- **`dev`**: Development branch - creates pre-release versions (e.g., `1.2.0-dev.1`)
+- **`dev`**: Development branch - CI runs tests and builds, no releases created
 - **`main`**: Production branch - creates stable releases (e.g., `1.2.0`)
 
 ## Workflow
@@ -14,21 +14,20 @@ This project uses [semantic-release](https://semantic-release.gitbook.io/) to au
    - Commit using conventional commit format (see below)
    - Open PR to merge into `dev`
 
-2. **Pre-release (dev branch)**
-   - When PRs are merged to `dev`, semantic-release automatically:
-     - Analyzes commits to determine version bump
-     - Creates a pre-release version (e.g., `1.2.0-dev.1`)
-     - Builds binaries for all platforms
-     - Creates a GitHub pre-release with artifacts
-     - Updates CHANGELOG.md
+2. **Development (dev branch)**
+   - When PRs are merged to `dev`:
+     - CI runs tests and builds
+     - No releases are created
+     - Commits accumulate for the next release
 
 3. **Stable Release (main branch)**
    - When `dev` is merged to `main`, semantic-release automatically:
-     - Analyzes all commits since last release
+     - Analyzes all commits since the last release
+     - Determines version based on the highest severity change
      - Creates a stable version (e.g., `1.2.0`)
      - Builds binaries for all platforms
      - Creates a GitHub release with artifacts
-     - Updates CHANGELOG.md
+     - Generates and updates CHANGELOG.md
      - Commits the changelog back to the repository
 
 ## Conventional Commits
