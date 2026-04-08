@@ -2,15 +2,18 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
+      - dev
 
 jobs:
   release:
-    name: Build and Release
+    name: Semantic Release
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      issues: write
+      pull-requests: write
     env:
       FORCE_COLOR: 1
     steps:
@@ -19,42 +22,43 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+
       - name: Set up Earthly
         uses: earthly/actions/setup-earthly@v1
         with:
           version: latest
 
-      - name: Extract version from tag
-        id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      - name: Install semantic-release dependencies
+        run: |
+          npm install -g \
+            semantic-release@^24.0.0 \
+            @semantic-release/changelog@^6.0.3 \
+            @semantic-release/git@^10.0.1 \
+            @semantic-release/exec@^6.0.3 \
+            conventional-changelog-conventionalcommits@^8.0.0
 
-      - name: Build all platforms
-        run: earthly --ci +build-all --VERSION=${{ steps.version.outputs.VERSION }}
-
-      - name: Copy artifacts
+      - name: Copy artifacts after build
         run: |
           mkdir -p dist
-          earthly --ci --artifact +build-linux-amd64/nls-linux-amd64 dist/nls-linux-amd64
-          earthly --ci --artifact +build-linux-arm64/nls-linux-arm64 dist/nls-linux-arm64
-          earthly --ci --artifact +build-darwin-amd64/nls-darwin-amd64 dist/nls-darwin-amd64
-          earthly --ci --artifact +build-darwin-arm64/nls-darwin-arm64 dist/nls-darwin-arm64
+          earthly --ci --artifact +build-linux-amd64/nls-linux-amd64 dist/nls-linux-amd64 || true
+          earthly --ci --artifact +build-linux-arm64/nls-linux-arm64 dist/nls-linux-arm64 || true
+          earthly --ci --artifact +build-darwin-amd64/nls-darwin-amd64 dist/nls-darwin-amd64 || true
+          earthly --ci --artifact +build-darwin-arm64/nls-darwin-arm64 dist/nls-darwin-arm64 || true
 
       - name: Create checksums
         run: |
           cd dist
-          sha256sum nls-* > checksums.txt
+          sha256sum nls-* > checksums.txt || true
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            dist/nls-linux-amd64
-            dist/nls-linux-arm64
-            dist/nls-darwin-amd64
-            dist/nls-darwin-arm64
-            dist/checksums.txt
-          generate_release_notes: true
-          draft: false
-          prerelease: false
+      - name: Run semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: github-actions[bot]@users.noreply.github.com
+        run: npx semantic-release
