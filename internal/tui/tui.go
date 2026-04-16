@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Evan Allender
 
+// Package tui provides terminal UI components for the application
 package tui
 
 import (

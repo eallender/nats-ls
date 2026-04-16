@@ -5,7 +5,7 @@ package tui
 
 import "github.com/charmbracelet/lipgloss"
 
-// ASCII art logo
+// Logo for the nat-ls header
 const Logo = `   _  ____   ____
   / |/ / /  / __/
  /    / /___\ \  
