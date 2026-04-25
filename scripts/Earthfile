@@ -9,7 +9,7 @@ build-publisher:
     RUN pip install --no-cache-dir uv
     COPY nats-tools/pyproject.toml nats-tools/uv.lock ./
     RUN uv sync --frozen --no-dev
-    COPY nats-tools/publish.py ./
+    COPY nats-tools/*.py ./
     RUN chmod +x publish.py
 
     ENTRYPOINT ["uv", "run", "--no-sync", "python", "publish.py"]
