@@ -60,10 +60,9 @@ func (r *Registry) DecodeWithFallback(data []byte) DecodeResult {
 		}
 	}
 
-	// Should never happen if hex decoder is registered (always succeeds)
 	return DecodeResult{
-		Content: "Error: No decoder available",
-		Format:  "error",
+		Content: "Unable to decode message: binary or unknown format",
+		Format:  "unknown",
 	}
 }
 

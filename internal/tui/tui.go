@@ -97,7 +97,6 @@ func New(nc *nats.Conn, viewer *monitor.Viewer, discovery *monitor.Discovery, se
 	registry := decode.NewRegistry(&decoderConfig)
 	registry.Register(decode.NewJSONDecoder(&decoderConfig))
 	registry.Register(decode.NewTextDecoder(&decoderConfig))
-	registry.Register(decode.NewHexDecoder(&decoderConfig))
 
 	return Model{
 		nc:              nc,

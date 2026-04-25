@@ -22,7 +22,7 @@ func (d *TextDecoder) Decode(data []byte) *DecodeResult {
 		return nil // Not printable text
 	}
 
-	text := string(data)
+	text := sanitizeControlChars(string(data))
 	wrapped := d.wrapText(text)
 
 	confidence := d.calculateConfidence(data)
@@ -113,6 +113,20 @@ func (d *TextDecoder) calculateConfidence(data []byte) float64 {
 		return 1.0
 	}
 	return float64(printable) / float64(total)
+}
+
+// sanitizeControlChars replaces non-printable control characters with '·' to
+// prevent stray bytes (e.g. \x1b) from corrupting terminal rendering.
+func sanitizeControlChars(s string) string {
+	var result strings.Builder
+	for _, r := range s {
+		if r < 32 && r != '\n' && r != '\r' && r != '\t' {
+			result.WriteRune('·')
+		} else {
+			result.WriteRune(r)
+		}
+	}
+	return result.String()
 }
 
 // wrapText wraps text at maxWidth characters
