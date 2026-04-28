@@ -83,6 +83,13 @@ func (m Model) renderLogViewWithHeight(contentHeight int) string {
 				// Replace newlines with spaces for single-line display
 				data = strings.ReplaceAll(data, "\n", " ")
 				data = strings.ReplaceAll(data, "\r", "")
+				// Sanitize control characters (e.g. ESC sequences) that corrupt the terminal
+				data = strings.Map(func(r rune) rune {
+					if r < 32 || r == 127 {
+						return '·'
+					}
+					return r
+				}, data)
 
 				// Calculate available width for data
 				// Format: "HH:MM:SS.mmm | subject | data"
@@ -98,9 +105,9 @@ func (m Model) renderLogViewWithHeight(contentHeight int) string {
 					dataWidth = 10
 				}
 
-				// Truncate data if needed
-				if len(data) > dataWidth {
-					data = data[:dataWidth-3] + "..."
+				// Truncate data if needed (use rune-aware truncation to avoid splitting multi-byte chars)
+				if lipgloss.Width(data) > dataWidth {
+					data = truncateToWidth(data, dataWidth)
 				}
 
 				// Check if this row is selected

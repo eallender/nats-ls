@@ -10,6 +10,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/eallender/nats-ls/internal/config"
+	"github.com/eallender/nats-ls/internal/decode"
 	"github.com/eallender/nats-ls/internal/logger"
 	"github.com/eallender/nats-ls/internal/monitor"
 	"github.com/nats-io/nats.go"
@@ -61,6 +62,9 @@ type Model struct {
 	// NATS management
 	viewer    *monitor.Viewer
 	discovery *monitor.Discovery
+
+	// Message decoding
+	decoderRegistry *decode.Registry
 }
 
 // connectAttemptMsg is sent when a connection attempt completes
@@ -76,12 +80,31 @@ type tickMsg time.Time
 
 // New creates a new TUI model
 func New(nc *nats.Conn, viewer *monitor.Viewer, discovery *monitor.Discovery, serverURL string, cfg *config.Config) Model {
+	// Initialize decoder registry
+	decoderConfig := decode.DecoderConfig{
+		MaxWidth: 80, // Default, will be updated on resize
+		Styles: decode.StyleConfig{
+			Key:     InspectKeyStyle,
+			String:  InspectStringStyle,
+			Number:  InspectNumberStyle,
+			Bool:    InspectBoolStyle,
+			Null:    InspectNullStyle,
+			Bracket: InspectBracketStyle,
+			Header:  InspectHeaderStyle,
+		},
+	}
+
+	registry := decode.NewRegistry(&decoderConfig)
+	registry.Register(decode.NewJSONDecoder(&decoderConfig))
+	registry.Register(decode.NewTextDecoder(&decoderConfig))
+
 	return Model{
-		nc:        nc,
-		serverURL: serverURL,
-		viewer:    viewer,
-		discovery: discovery,
-		config:    cfg,
+		nc:              nc,
+		serverURL:       serverURL,
+		viewer:          viewer,
+		discovery:       discovery,
+		config:          cfg,
+		decoderRegistry: registry,
 	}
 }
 
