@@ -11,7 +11,7 @@ const Logo = `   _  ____   ____
  /    / /___\ \  
 /_/|_/____/___/  `
 
-// Color palette
+// NLS color palette
 var (
 	ColorPrimary    = lipgloss.Color("205") // pink/magenta
 	ColorSuccess    = lipgloss.Color("42")  // green
@@ -22,7 +22,6 @@ var (
 	ColorBackground = lipgloss.Color("235") // dark gray
 )
 
-// Header styles
 var (
 	HeaderContainerStyle = lipgloss.NewStyle()
 

@@ -16,12 +16,11 @@ import (
 
 // Init implements tea.Model
 func (m Model) Init() tea.Cmd {
-	// If not connected, start trying to connect
 	if !m.IsConnected() {
 		// Note: connectingInProgress will be set in the first Update cycle
 		return m.tryConnect()
 	}
-	// Start the tick loop to refresh the UI
+	// Start the tick loop to refresh UI
 	return tickCmd()
 }
 
@@ -52,7 +51,6 @@ func createNATSConnection(cfg *config.Config) (*nats.Conn, error) {
 func (m Model) tryConnect() tea.Cmd {
 	return func() tea.Msg {
 		nc, err := createNATSConnection(m.config)
-
 		if err != nil {
 			logger.Log.Debug("Connection attempt failed", "error", err)
 			return connectAttemptMsg{nc: nil, err: err}

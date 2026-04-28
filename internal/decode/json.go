@@ -39,8 +39,6 @@ func (d *JSONDecoder) Decode(data []byte) *DecodeResult {
 	}
 
 	formatted := strings.TrimSpace(buf.String())
-
-	// Apply syntax highlighting
 	highlighted := d.syntaxHighlight(formatted)
 
 	// Wrap lines to fit width

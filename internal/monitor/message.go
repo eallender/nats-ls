@@ -23,7 +23,7 @@ type MessageStore struct {
 	maxSize  int
 }
 
-// Creates a new Message Store
+// NewMessageStore creates a new Message Store
 func NewMessageStore(maxSize int) *MessageStore {
 	return &MessageStore{
 		messages: make([]Message, 0, maxSize),

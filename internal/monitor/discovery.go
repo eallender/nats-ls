@@ -25,7 +25,7 @@ func NewDiscovery(nc *nats.Conn) *Discovery {
 	}
 }
 
-// Starts NATS subject discovery
+// Start NATS subject discovery
 func (d *Discovery) Start(ctx context.Context, maxMessages int, maxStorageMB int) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -53,11 +53,6 @@ func (d *Discovery) Start(ctx context.Context, maxMessages int, maxStorageMB int
 // GetAllSubjects returns all discovered subjects
 func (d *Discovery) GetAllSubjects() []*SubjectInfo {
 	return d.store.All()
-}
-
-// GetSubject returns info for a specific subject
-func (d *Discovery) GetSubject(subject string) (*SubjectInfo, bool) {
-	return d.store.Get(subject)
 }
 
 // Stop unsubscribes and cleans up the discovery

@@ -40,10 +40,7 @@ func GetFrameHeight(style lipgloss.Style) int {
 func MaxContentHeight(totalHeight int, style lipgloss.Style) int {
 	frameSize := GetFrameHeight(style)
 	contentHeight := totalHeight - frameSize
-
-	if contentHeight < 1 {
-		contentHeight = 1
-	}
+	contentHeight = max(contentHeight, 1)
 
 	return contentHeight
 }
@@ -53,9 +50,8 @@ func MaxContentHeight(totalHeight int, style lipgloss.Style) int {
 func GetContentWidth(terminalWidth int) int {
 	const framePadding = 6 // 2+2 padding + 1+1 borders
 	contentWidth := terminalWidth - framePadding
-	if contentWidth < 1 {
-		contentWidth = 1
-	}
+	contentWidth = max(contentWidth, 1)
+
 	return contentWidth
 }
 

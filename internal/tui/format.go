@@ -181,7 +181,6 @@ func truncateToWidth(s string, maxWidth int) string {
 		}
 
 		if visibleWidth+charWidth > targetWidth {
-			// We've reached the limit
 			break
 		}
 

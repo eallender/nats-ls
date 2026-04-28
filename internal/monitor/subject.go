@@ -20,6 +20,7 @@ type SubjectStore struct {
 	subjects sync.Map
 }
 
+// Record an encountered subject in the subject store
 func (s *SubjectStore) Record(subject string) (isNew bool) {
 	now := time.Now()
 
@@ -35,6 +36,7 @@ func (s *SubjectStore) Record(subject string) (isNew bool) {
 	return !loaded
 }
 
+// All converts the subject store map to a usable slice
 func (s *SubjectStore) All() []*SubjectInfo {
 	var result []*SubjectInfo
 	s.subjects.Range(func(_, value any) bool {
@@ -42,12 +44,4 @@ func (s *SubjectStore) All() []*SubjectInfo {
 		return true
 	})
 	return result
-}
-
-func (s *SubjectStore) Get(subject string) (*SubjectInfo, bool) {
-	val, ok := s.subjects.Load(subject)
-	if !ok {
-		return nil, false
-	}
-	return val.(*SubjectInfo), true
 }

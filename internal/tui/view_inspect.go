@@ -60,27 +60,19 @@ func (m Model) renderMessageInspectWithHeight(contentHeight int) string {
 
 			// Calculate available lines for content (minus navigation hint)
 			availableLines := contentHeightAdjusted - 1
-			if availableLines < 1 {
-				availableLines = 1
-			}
+			availableLines = max(availableLines, 1)
 
 			// Calculate max scroll (clamping is done in Update, not here)
 			maxScroll := len(allLines) - availableLines
-			if maxScroll < 0 {
-				maxScroll = 0
-			}
+			maxScroll = max(maxScroll, 0)
 
 			// Clamp scroll offset for display (read-only)
 			scrollOffset := m.inspectScrollOffset
-			if scrollOffset > maxScroll {
-				scrollOffset = maxScroll
-			}
+			scrollOffset = min(scrollOffset, maxScroll)
 
 			// Get visible lines
 			endIdx := scrollOffset + availableLines
-			if endIdx > len(allLines) {
-				endIdx = len(allLines)
-			}
+			endIdx = min(endIdx, len(allLines))
 
 			visibleLines := allLines[scrollOffset:endIdx]
 
