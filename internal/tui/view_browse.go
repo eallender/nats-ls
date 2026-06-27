@@ -64,10 +64,9 @@ func (m Model) renderContentWithHeight(contentHeight int) string {
 				ageColWidth = 10
 				idleColWidth = 10
 				subjectColWidth = contentWidth - msgColWidth - rateColWidth - ageColWidth - idleColWidth - spacingChars
-				// Ensure subject column has reasonable minimum
-				if subjectColWidth < 15 {
-					subjectColWidth = 15
-				}
+
+				// Ensure min safe column width
+				subjectColWidth = max(subjectColWidth, 15)
 			}
 
 			// Final safety check: ensure total width doesn't exceed contentWidth
@@ -75,9 +74,7 @@ func (m Model) renderContentWithHeight(contentHeight int) string {
 			if totalWidth > contentWidth {
 				// Force subjectColWidth to fit within bounds
 				subjectColWidth = contentWidth - msgColWidth - rateColWidth - ageColWidth - idleColWidth - spacingChars
-				if subjectColWidth < 1 {
-					subjectColWidth = 1
-				}
+				subjectColWidth = max(subjectColWidth, 1)
 			}
 
 			// Calculate visible range of subjects

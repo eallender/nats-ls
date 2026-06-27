@@ -29,11 +29,11 @@ func (m Model) getBrowseAvailableLines() int {
 	}
 
 	// This matches view_browse.go's calculation
+	// TODO: This should be aggregated
 	innerContentHeight := MaxContentHeight(contentHeight, NavStyle)
 	availableLines := innerContentHeight - 2 // header + scroll indicator/stats line
-	if availableLines < 1 {
-		availableLines = 1
-	}
+	availableLines = max(availableLines, 1)
+
 	return availableLines
 }
 

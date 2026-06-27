@@ -16,7 +16,6 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
-// ViewMode represents the current view mode
 type ViewMode int
 
 const (
@@ -117,13 +116,11 @@ func Run(config *config.Config) error {
 	var err error
 	nc, err = createNATSConnection(config)
 	if err != nil {
-		// Initial connection failed, but continue with TUI
 		logger.Log.Warn("Could not connect to NATS", "address", config.NatsAddress, "error", err)
 	} else {
 		viewer = monitor.NewViewer(nc, config.NatsViewerMessageLimit)
 		discovery = monitor.NewDiscovery(nc)
 
-		// Start discovery to listen for all subjects
 		ctx := context.Background()
 		if err := discovery.Start(ctx, config.NatsDiscoveryPendingLimit, config.NatsDiscoveryStorageLimitMB); err != nil {
 			logger.Log.Warn("Failed to start discovery", "error", err)
@@ -135,7 +132,6 @@ func Run(config *config.Config) error {
 	p := tea.NewProgram(New(nc, viewer, discovery, config.NatsAddress, config), tea.WithAltScreen())
 	finalModel, err := p.Run()
 
-	// Clean up connections from the final model state
 	if m, ok := finalModel.(Model); ok {
 		if m.viewer != nil {
 			m.viewer.Stop()

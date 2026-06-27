@@ -38,24 +38,16 @@ func (m Model) renderLogViewWithHeight(contentHeight int) string {
 			// Calculate how many lines we can show
 			// Lines used: scroll indicator(1) + 1 extra to prevent overflow = 2
 			availableLines := contentHeightAdjusted - 2
-			if availableLines < 1 {
-				availableLines = 1
-			}
+			availableLines = max(availableLines, 1)
 
 			// Messages flow from bottom to top (newest at bottom)
 			// scrollOffset=0 means showing the most recent messages at the bottom
 			// scrollOffset>0 means scrolling back in history (older messages)
 			endIdx := len(messages) - m.logScrollOffset
-			if endIdx < 0 {
-				endIdx = 0
-			}
-			if endIdx > len(messages) {
-				endIdx = len(messages)
-			}
+			endIdx = max(endIdx, 0)
+			endIdx = min(endIdx, len(messages))
 			startIdx := endIdx - availableLines
-			if startIdx < 0 {
-				startIdx = 0
-			}
+			startIdx = max(startIdx, 0)
 
 			// Calculate actual number of messages to display
 			numMessages := endIdx - startIdx
@@ -71,16 +63,9 @@ func (m Model) renderLogViewWithHeight(contentHeight int) string {
 
 			for i := startIdx; i < endIdx; i++ {
 				msg := messages[i]
-
-				// Format timestamp
 				timestamp := msg.Timestamp.Format("15:04:05.000")
-
-				// Format subject (may differ from watched subject if using wildcard)
 				subject := msg.Subject
-
-				// Format data - try to display as string, truncate if needed
 				data := string(msg.Data)
-				// Replace newlines with spaces for single-line display
 				data = strings.ReplaceAll(data, "\n", " ")
 				data = strings.ReplaceAll(data, "\r", "")
 				// Sanitize control characters (e.g. ESC sequences) that corrupt the terminal
@@ -101,9 +86,7 @@ func (m Model) renderLogViewWithHeight(contentHeight int) string {
 					subject = subject[:27] + "..."
 				}
 				dataWidth := contentWidth - timestampWidth - separatorWidth - subjectWidth
-				if dataWidth < 10 {
-					dataWidth = 10
-				}
+				dataWidth = max(dataWidth, 10)
 
 				// Truncate data if needed (use rune-aware truncation to avoid splitting multi-byte chars)
 				if lipgloss.Width(data) > dataWidth {
@@ -146,9 +129,7 @@ func (m Model) renderLogViewWithHeight(contentHeight int) string {
 			// The selected message's actual index is: endIdx - 1 - m.logSelectedIndex
 			selectedActualIdx := endIdx - 1 - m.logSelectedIndex
 			newerCount := len(messages) - 1 - selectedActualIdx
-			if newerCount < 0 {
-				newerCount = 0
-			}
+			newerCount = max(newerCount, 0)
 
 			// Check if paused
 			isPaused := m.viewer != nil && m.viewer.IsPaused()

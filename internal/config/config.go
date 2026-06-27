@@ -70,7 +70,7 @@ func EnsureConfigDir() (string, error) {
 	}
 
 	// Create directory with appropriate permissions (0755)
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
 		return "", err
 	}
 
@@ -94,7 +94,7 @@ func EnsureLogDir() (string, error) {
 	}
 
 	// Create directory with appropriate permissions (0755)
-	if err := os.MkdirAll(logDir, 0755); err != nil {
+	if err := os.MkdirAll(logDir, 0o755); err != nil {
 		return "", err
 	}
 
@@ -103,10 +103,8 @@ func EnsureLogDir() (string, error) {
 
 // Load reads the configuration file and returns a Config struct
 func Load() (*Config, error) {
-	// Create a new viper instance to avoid global state issues
 	v := viper.New()
 
-	// Ensure config directory exists and get its path
 	configDir, err := EnsureConfigDir()
 	if err != nil {
 		return nil, err
@@ -115,16 +113,12 @@ func Load() (*Config, error) {
 	v.SetConfigType(configType)
 	v.AddConfigPath(configDir)
 
-	// Set defaults
 	setDefaults(v)
 
-	// Read config file (it's okay if it doesn't exist yet)
 	if err := v.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-			// Config file was found but another error occurred
 			return nil, err
 		}
-		// Config file not found, will use defaults
 	}
 
 	cfg := &Config{}
@@ -145,7 +139,6 @@ func Load() (*Config, error) {
 
 // Sets default configuration values
 func setDefaults(v *viper.Viper) {
-	// Top Level Defaults
 	v.SetDefault("log_level", "info")
 	v.SetDefault("nats_port", 4222)
 	v.SetDefault("nats_url", "127.0.0.1")
@@ -168,11 +161,9 @@ func setMetadata(cfg *Config) {
 
 // GenerateDefaultConfigYAML generates a YAML config file with defaults and comments
 func GenerateDefaultConfigYAML() (string, error) {
-	// Create a viper instance with defaults
 	v := viper.New()
 	setDefaults(v)
 
-	// Create a map to hold the config with comments
 	var buf bytes.Buffer
 
 	buf.WriteString("# nls configuration file\n")

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Evan Allender
 
+// Package monitor implements the core nats message ingestion logic
 package monitor
 
 import (
@@ -26,7 +27,7 @@ func NewViewer(nc *nats.Conn, maxMessages int) *Viewer {
 	}
 }
 
-// Points the Viewer to a new NATS subject
+// Watch points the Viewer to a new NATS subject
 func (v *Viewer) Watch(subject string) error {
 	v.mu.Lock()
 	defer v.mu.Unlock()
@@ -62,7 +63,7 @@ func (v *Viewer) Watch(subject string) error {
 	return err
 }
 
-// Stops the Viewer from ingesting NATS messages
+// Stop the Viewer from ingesting NATS messages
 func (v *Viewer) Stop() {
 	v.mu.Lock()
 	defer v.mu.Unlock()
