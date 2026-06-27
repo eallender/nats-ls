@@ -132,21 +132,6 @@ go build -o nls ./cmd/nls
 ./nls
 ```
 
-### Build with Earthly
-
-This project uses [Earthly](https://earthly.dev/) for reproducible builds:
-
-```bash
-# Run CI checks
-earthly +ci
-
-# Build for all platforms
-earthly +build-all
-
-# Build for specific platform
-earthly +build-linux-amd64
-```
-
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
@@ -159,4 +144,3 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 
 - Built with [Bubble Tea](https://github.com/charmbracelet/bubbletea) - A powerful TUI framework for Go
 - Uses [NATS](https://nats.io/) - High-performance messaging system
-- CI runs on [Earth Build](https://github.com/EarthBuild/earthbuild)

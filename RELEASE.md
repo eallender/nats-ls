@@ -1,118 +1,31 @@
 # Release Process
 
-This project uses [semantic-release](https://semantic-release.gitbook.io/) to automate versioning and releases based on conventional commits.
+Releases are triggered by pushing a version tag from `main`.
 
 ## Branching Strategy
 
-- **`dev`**: Development branch - CI runs tests and builds, no releases created
-- **`main`**: Production branch - creates stable releases (e.g., `1.2.0`)
+- `main` is the only long-lived branch.
+- Feature/fix branches are created from `main` and merged back to `main` by pull request.
+- The release workflow rejects tags whose target commit is not contained in `main`.
 
-## Workflow
+## Cutting a Release
 
-1. **Feature Development**
-   - Create feature branches from `dev`
-   - Commit using conventional commit format (see below)
-   - Open PR to merge into `dev`
+1. Make sure `main` is at the commit you want to release.
+2. Tag it with a `v`-prefixed semver version and push the tag:
+   ```bash
+   git checkout main
+   git pull --ff-only origin main
+   git tag v1.2.0
+   git push origin v1.2.0
+   ```
+3. The [Release workflow](.github/workflows/release.yml) picks up the tag push and runs [GoReleaser](https://goreleaser.com/), which:
+   - Verifies the tagged commit is on `main`
+   - Runs formatting, vet, and tests
+   - Builds binaries for all platforms, with the version baked in via `-ldflags`
+   - Generates SHA256 checksums
+   - Creates a GitHub release for the tag with grouped release notes (Features / Bug Fixes / Performance Improvements / Other Changes) generated from commits since the last tag, and the built binaries attached
 
-2. **Development (dev branch)**
-   - When PRs are merged to `dev`:
-     - CI runs tests and builds
-     - No releases are created
-     - Commits accumulate for the next release
-
-3. **Stable Release (main branch)**
-   - When `dev` is merged to `main`, semantic-release automatically:
-     - Analyzes all commits since the last release
-     - Determines version based on the highest severity change
-     - Creates a stable version (e.g., `1.2.0`)
-     - Builds binaries for all platforms
-     - Creates a GitHub release with artifacts
-     - Generates and updates CHANGELOG.md
-     - Commits the changelog back to the repository
-
-## Conventional Commits
-
-This project follows the [Conventional Commits](https://www.conventionalcommits.org/) specification.
-
-### Commit Format
-
-```
-<type>(<scope>): <subject>
-
-<body>
-
-<footer>
-```
-
-### Types and Version Bumps
-
-| Type | Description | Version Bump | Example |
-|------|-------------|--------------|---------|
-| `feat` | New feature | **Minor** (0.x.0) | `feat: add subject filtering` |
-| `fix` | Bug fix | **Patch** (0.0.x) | `fix: resolve connection timeout` |
-| `perf` | Performance improvement | **Patch** (0.0.x) | `perf: optimize message parsing` |
-| `BREAKING CHANGE` | Breaking change | **Major** (x.0.0) | See below |
-
-### Types that DON'T trigger releases
-
-- `docs`: Documentation changes
-- `style`: Code style changes (formatting, etc.)
-- `refactor`: Code refactoring
-- `test`: Adding or updating tests
-- `chore`: Maintenance tasks
-- `ci`: CI/CD changes
-- `build`: Build system changes
-
-### Breaking Changes
-
-To trigger a major version bump, include `BREAKING CHANGE:` in the commit footer:
-
-```
-feat: redesign configuration format
-
-BREAKING CHANGE: Configuration file format has changed from YAML to TOML.
-Users must migrate their existing config files.
-```
-
-Or use `!` after the type:
-
-```
-feat!: redesign configuration format
-```
-
-### Examples
-
-#### Minor version bump (new feature)
-```
-feat(tui): add dark mode support
-
-Added configurable dark mode theme for better visibility
-in different lighting conditions.
-```
-
-#### Patch version bump (bug fix)
-```
-fix(connection): handle reconnection edge case
-
-Fixed issue where reconnection would fail if the initial
-connection was interrupted during handshake.
-```
-
-#### Major version bump (breaking change)
-```
-feat!: change CLI flag names for consistency
-
-BREAKING CHANGE: Renamed --nats-server to --server and
---nats-url to --url for consistency with other CLI tools.
-```
-
-## Manual Release
-
-While semantic-release automates the process, you can manually trigger a release by:
-
-1. Ensuring you're on the correct branch (`dev` or `main`)
-2. Pushing commits with conventional commit messages
-3. The GitHub Action will automatically run and create the release
+Conventional commit prefixes (`feat:`, `fix:`, `perf:`) are used by GoReleaser to group entries in the release notes; everything else lands under "Other Changes."
 
 ## Release Assets
 
@@ -127,4 +40,3 @@ Each release includes:
 
 - View release status: Check the [Actions tab](../../actions/workflows/release.yml)
 - View releases: Check the [Releases page](../../releases)
-- View changelog: See [CHANGELOG.md](./CHANGELOG.md)

@@ -42,9 +42,6 @@ Feature requests are welcome! Please open an issue describing:
 
    # Run tests
    go test ./...
-
-   # Or run all CI checks
-   earthly +ci
    ```
 
 4. **Commit your changes** with a clear commit message
@@ -52,15 +49,9 @@ Feature requests are welcome! Please open an issue describing:
    git commit -m "feat: add new feature"
    ```
 
-   Follow [Conventional Commits](https://www.conventionalcommits.org/):
-   - `feat:` for new features
-   - `fix:` for bug fixes
-   - `docs:` for documentation changes
-   - `refactor:` for code refactoring
-   - `test:` for adding tests
-   - `chore:` for maintenance tasks
+   Conventional Commit-style prefixes (`feat:`, `fix:`, `docs:`, etc.) are encouraged because they make release notes easier to scan.
 
-5. **Push to your fork** and submit a pull request
+5. **Push to your fork** and submit a pull request targeting `main`
    ```bash
    git push origin feature/my-feature
    ```

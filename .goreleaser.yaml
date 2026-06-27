@@ -1,0 +1,35 @@
+version: 2
+
+builds:
+  - id: nls
+    main: ./cmd/nls
+    binary: nls
+    env:
+      - CGO_ENABLED=0
+    goos: [linux, darwin]
+    goarch: [amd64, arm64]
+    ldflags:
+      - -X github.com/eallender/nats-ls/internal/config.Version={{.Version}}
+
+archives:
+  - id: nls
+    formats: [binary]
+    name_template: "nls-{{ .Os }}-{{ .Arch }}"
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\(.+\))??!?:.+$'
+      order: 0
+    - title: "Bug Fixes"
+      regexp: '^.*?fix(\(.+\))??!?:.+$'
+      order: 1
+    - title: "Performance Improvements"
+      regexp: '^.*?perf(\(.+\))??!?:.+$'
+      order: 2
+    - title: "Other Changes"
+      order: 999
