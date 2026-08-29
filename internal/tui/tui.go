@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Evan Allender
 
+// Package tui provides terminal UI components for the application
 package tui
 
 import (
-	"context"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/eallender/nats-ls/internal/config"
+	"github.com/eallender/nats-ls/internal/decode"
 	"github.com/eallender/nats-ls/internal/logger"
 	"github.com/eallender/nats-ls/internal/monitor"
 	"github.com/nats-io/nats.go"
 )
 
-// ViewMode represents the current view mode
 type ViewMode int
 
 const (
@@ -60,6 +60,9 @@ type Model struct {
 	// NATS management
 	viewer    *monitor.Viewer
 	discovery *monitor.Discovery
+
+	// Message decoding
+	decoderRegistry *decode.Registry
 }
 
 // connectAttemptMsg is sent when a connection attempt completes
@@ -75,12 +78,31 @@ type tickMsg time.Time
 
 // New creates a new TUI model
 func New(nc *nats.Conn, viewer *monitor.Viewer, discovery *monitor.Discovery, serverURL string, cfg *config.Config) Model {
+	// Initialize decoder registry
+	decoderConfig := decode.DecoderConfig{
+		MaxWidth: 80, // Default, will be updated on resize
+		Styles: decode.StyleConfig{
+			Key:     InspectKeyStyle,
+			String:  InspectStringStyle,
+			Number:  InspectNumberStyle,
+			Bool:    InspectBoolStyle,
+			Null:    InspectNullStyle,
+			Bracket: InspectBracketStyle,
+			Header:  InspectHeaderStyle,
+		},
+	}
+
+	registry := decode.NewRegistry(&decoderConfig)
+	registry.Register(decode.NewJSONDecoder(&decoderConfig))
+	registry.Register(decode.NewTextDecoder(&decoderConfig))
+
 	return Model{
-		nc:        nc,
-		serverURL: serverURL,
-		viewer:    viewer,
-		discovery: discovery,
-		config:    cfg,
+		nc:              nc,
+		serverURL:       serverURL,
+		viewer:          viewer,
+		discovery:       discovery,
+		config:          cfg,
+		decoderRegistry: registry,
 	}
 }
 
@@ -93,15 +115,17 @@ func Run(config *config.Config) error {
 	var err error
 	nc, err = createNATSConnection(config)
 	if err != nil {
-		// Initial connection failed, but continue with TUI
 		logger.Log.Warn("Could not connect to NATS", "address", config.NatsAddress, "error", err)
 	} else {
 		viewer = monitor.NewViewer(nc, config.NatsViewerMessageLimit)
-		discovery = monitor.NewDiscovery(nc)
+		discovery = monitor.NewDiscovery(
+			nc,
+			config.NatsDiscoverySubjectLimit,
+			time.Duration(config.NatsDiscoverySubjectMaxAgeMinutes)*time.Minute,
+			time.Duration(config.NatsDiscoveryCleanupIntervalSeconds)*time.Second,
+		)
 
-		// Start discovery to listen for all subjects
-		ctx := context.Background()
-		if err := discovery.Start(ctx, config.NatsDiscoveryPendingLimit, config.NatsDiscoveryStorageLimitMB); err != nil {
+		if err := discovery.Start(config.NatsDiscoveryPendingLimit, config.NatsDiscoveryStorageLimitMB); err != nil {
 			logger.Log.Warn("Failed to start discovery", "error", err)
 		}
 
@@ -111,7 +135,6 @@ func Run(config *config.Config) error {
 	p := tea.NewProgram(New(nc, viewer, discovery, config.NatsAddress, config), tea.WithAltScreen())
 	finalModel, err := p.Run()
 
-	// Clean up connections from the final model state
 	if m, ok := finalModel.(Model); ok {
 		if m.viewer != nil {
 			m.viewer.Stop()

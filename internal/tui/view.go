@@ -130,8 +130,9 @@ func (m Model) renderHeader() string {
 
 	var controls1, controlsInfo1, controls2, controlsInfo2 string
 
-	if m.viewMode == ViewModeMessageInspect {
-		// Message inspect view controls
+	switch m.viewMode {
+	case ViewModeMessageInspect:
+		// View message inspect controls
 		pauseKey, pauseLabel := m.getPauseResumeLabel()
 
 		controls1 = HeaderControlStyle.Render(lipgloss.JoinVertical(
@@ -167,7 +168,7 @@ func (m Model) renderHeader() string {
 			pauseLabel,
 			"quit",
 		))
-	} else if m.viewMode == ViewModeLog {
+	case ViewModeLog:
 		// Log view controls
 		pauseKey, pauseLabel := m.getPauseResumeLabel()
 
@@ -204,7 +205,7 @@ func (m Model) renderHeader() string {
 			pauseLabel,
 			"quit",
 		))
-	} else {
+	default:
 		// Browse view controls
 		controls1 = HeaderControlStyle.Render(lipgloss.JoinVertical(
 			lipgloss.Left,

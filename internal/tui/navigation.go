@@ -96,17 +96,16 @@ func (m Model) getSubjectsAtCurrentLevel() []SubjectNode {
 			lastSeen := subject.LastSeen.Load().(time.Time)
 
 			if existing, ok := nodeMap[nextLevel]; ok {
-				// Aggregate message counts
 				existing.MessageCount += subject.MessageCount.Load()
-				// If any subject is a leaf, mark it as such
+
 				if isLeaf {
 					existing.IsLeaf = true
 				}
-				// Track the earliest FirstSeen
+
 				if subject.FirstSeen.Before(existing.FirstSeen) {
 					existing.FirstSeen = subject.FirstSeen
 				}
-				// Track the most recent LastSeen
+
 				if lastSeen.After(existing.LastSeen) {
 					existing.LastSeen = lastSeen
 				}

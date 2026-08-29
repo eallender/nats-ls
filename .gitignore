@@ -2,6 +2,7 @@
 build/
 
 # Binaries
+/nls
 *.exe
 *.dll
 *.so
@@ -14,6 +15,11 @@ build/
 # Output of 'go build'
 *.o
 *.a
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
 
 # IDE
 .idea/
@@ -30,3 +36,6 @@ Thumbs.db
 # Logs and config for development
 *.log
 .nats-ls/
+
+# Release build output
+dist/

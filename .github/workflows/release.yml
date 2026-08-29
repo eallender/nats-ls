@@ -7,54 +7,42 @@ on:
 
 jobs:
   release:
-    name: Build and Release
+    name: Release
     runs-on: ubuntu-latest
     permissions:
       contents: write
     env:
-      FORCE_COLOR: 1
+      CGO_ENABLED: 0
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up Earthly
-        uses: earthly/actions/setup-earthly@v1
+      - name: Ensure tag points at main
+        run: |
+          git fetch origin main
+          tag_commit="$(git rev-list -n 1 "$GITHUB_REF_NAME")"
+          git merge-base --is-ancestor "$tag_commit" origin/main
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.5'
+
+      - name: Check formatting
+        run: test -z "$(gofmt -l .)"
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./...
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
         with:
           version: latest
-
-      - name: Extract version from tag
-        id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
-      - name: Build all platforms
-        run: earthly --ci +build-all --VERSION=${{ steps.version.outputs.VERSION }}
-
-      - name: Copy artifacts
-        run: |
-          mkdir -p dist
-          earthly --ci --artifact +build-linux-amd64/nls-linux-amd64 dist/nls-linux-amd64
-          earthly --ci --artifact +build-linux-arm64/nls-linux-arm64 dist/nls-linux-arm64
-          earthly --ci --artifact +build-darwin-amd64/nls-darwin-amd64 dist/nls-darwin-amd64
-          earthly --ci --artifact +build-darwin-arm64/nls-darwin-arm64 dist/nls-darwin-arm64
-
-      - name: Create checksums
-        run: |
-          cd dist
-          sha256sum nls-* > checksums.txt
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            dist/nls-linux-amd64
-            dist/nls-linux-arm64
-            dist/nls-darwin-amd64
-            dist/nls-darwin-arm64
-            dist/checksums.txt
-          generate_release_notes: true
-          draft: false
-          prerelease: false
+          args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

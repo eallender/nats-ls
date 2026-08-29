@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -134,58 +135,6 @@ func ensureWidth(s string, width int) string {
 	return s
 }
 
-// decodeRune decodes a UTF-8 rune from bytes
-func decodeRune(data []byte) (rune, int) {
-	if len(data) == 0 {
-		return '\uFFFD', 0
-	}
-
-	// Simple UTF-8 decoding
-	b := data[0]
-	if b < 0x80 {
-		return rune(b), 1
-	}
-	if b < 0xC0 {
-		return '\uFFFD', 1
-	}
-	if b < 0xE0 && len(data) >= 2 {
-		return rune(b&0x1F)<<6 | rune(data[1]&0x3F), 2
-	}
-	if b < 0xF0 && len(data) >= 3 {
-		return rune(b&0x0F)<<12 | rune(data[1]&0x3F)<<6 | rune(data[2]&0x3F), 3
-	}
-	if len(data) >= 4 {
-		return rune(b&0x07)<<18 | rune(data[1]&0x3F)<<12 | rune(data[2]&0x3F)<<6 | rune(data[3]&0x3F), 4
-	}
-	return '\uFFFD', 1
-}
-
-// wrapText wraps text at maxWidth characters
-func wrapText(text string, maxWidth int) string {
-	if maxWidth <= 0 {
-		maxWidth = 80
-	}
-
-	var result strings.Builder
-	lines := strings.Split(text, "\n")
-
-	for i, line := range lines {
-		if i > 0 {
-			result.WriteString("\n")
-		}
-
-		// Wrap long lines
-		for len(line) > maxWidth {
-			result.WriteString(line[:maxWidth])
-			result.WriteString("\n")
-			line = line[maxWidth:]
-		}
-		result.WriteString(line)
-	}
-
-	return result.String()
-}
-
 // truncateToWidth truncates a string to fit within maxWidth, properly handling ANSI codes
 func truncateToWidth(s string, maxWidth int) string {
 	if maxWidth <= 3 {
@@ -225,14 +174,13 @@ func truncateToWidth(s string, maxWidth int) string {
 		}
 
 		// Regular character - count its width
-		r, size := decodeRune([]byte(s[i:]))
+		r, size := utf8.DecodeRuneInString(s[i:])
 		charWidth := 1
 		if r >= 0x1100 { // Rough check for wide characters (CJK, etc.)
 			charWidth = 2
 		}
 
 		if visibleWidth+charWidth > targetWidth {
-			// We've reached the limit
 			break
 		}
 
