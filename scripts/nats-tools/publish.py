@@ -91,7 +91,8 @@ async def main(config: Config):
         ))
 
     if config.js_publishers > 0:
-        await ensure_stream(js, config.js_stream_name, config.js_subject_prefix)
+        js_subject_patterns = config.js_subject_bases or [config.js_subject_prefix]
+        await ensure_stream(js, config.js_stream_name, js_subject_patterns)
         for i in range(config.js_publishers):
             tasks.append(asyncio.create_task(
                 run_js_publisher(js, i, PAYLOAD_TYPES[i % len(PAYLOAD_TYPES)], config, stats, stop_event)

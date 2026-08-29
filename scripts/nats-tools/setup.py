@@ -13,13 +13,17 @@ except ImportError:
 async def ensure_stream(
     js: nats.js.JetStreamContext,
     name: str,
-    subject_pattern: str,
+    subject_patterns: str | list[str],
 ):
     """Ensure a JetStream stream exists."""
+    if isinstance(subject_patterns, str):
+        subject_patterns = [subject_patterns]
+
+    # Use subject prefixes with wildcard to avoid conflicts with KV/Object Store.
+    # Never use ">" as it claims ALL subjects and conflicts with $KV.> and $O.>.
+    subjects = [f"{pattern}.>" for pattern in subject_patterns]
+
     try:
-        # Use subject prefix with wildcard to avoid conflicts with KV/Object Store
-        # Never use ">" as it claims ALL subjects and conflicts with $KV.> and $O.>
-        subjects = [f"{subject_pattern}.>"]
         await js.add_stream(
             name=name,
             subjects=subjects,
