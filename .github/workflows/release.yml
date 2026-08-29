@@ -2,62 +2,47 @@ name: Release
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*'
 
 jobs:
   release:
-    name: Semantic Release
+    name: Release
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      issues: write
-      pull-requests: write
     env:
-      FORCE_COLOR: 1
+      CGO_ENABLED: 0
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 'lts/*'
+      - name: Ensure tag points at main
+        run: |
+          git fetch origin main
+          tag_commit="$(git rev-list -n 1 "$GITHUB_REF_NAME")"
+          git merge-base --is-ancestor "$tag_commit" origin/main
 
-      - name: Set up Earthly
-        uses: earthly/actions/setup-earthly@v1
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.5'
+
+      - name: Check formatting
+        run: test -z "$(gofmt -l .)"
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./...
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
         with:
           version: latest
-
-      - name: Install semantic-release dependencies
-        run: |
-          npm install -g \
-            semantic-release@^24.0.0 \
-            @semantic-release/changelog@^6.0.3 \
-            @semantic-release/git@^10.0.1 \
-            @semantic-release/exec@^6.0.3 \
-            conventional-changelog-conventionalcommits@^8.0.0
-
-      - name: Copy artifacts after build
-        run: |
-          mkdir -p dist
-          earthly --ci --artifact +build-linux-amd64/nls-linux-amd64 dist/nls-linux-amd64 || true
-          earthly --ci --artifact +build-linux-arm64/nls-linux-arm64 dist/nls-linux-arm64 || true
-          earthly --ci --artifact +build-darwin-amd64/nls-darwin-amd64 dist/nls-darwin-amd64 || true
-          earthly --ci --artifact +build-darwin-arm64/nls-darwin-arm64 dist/nls-darwin-arm64 || true
-
-      - name: Create checksums
-        run: |
-          cd dist
-          sha256sum nls-* > checksums.txt || true
-
-      - name: Run semantic-release
+          args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GIT_AUTHOR_NAME: github-actions[bot]
-          GIT_AUTHOR_EMAIL: github-actions[bot]@users.noreply.github.com
-          GIT_COMMITTER_NAME: github-actions[bot]
-          GIT_COMMITTER_EMAIL: github-actions[bot]@users.noreply.github.com
-        run: npx semantic-release

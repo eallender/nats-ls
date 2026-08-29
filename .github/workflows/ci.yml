@@ -2,26 +2,35 @@ name: CI
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, dev ]
+    branches: [ main ]
 
 jobs:
-  earthly-ci:
-    name: Earthly CI
+  test:
+    name: Build, Vet & Lint
     runs-on: ubuntu-latest
     env:
-      FORCE_COLOR: 1
+      CGO_ENABLED: 0
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Earthly
-      uses: earthly/actions/setup-earthly@v1
-      with:
-        version: latest
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.5'
 
-    - name: Run Earthly CI
-      run: earthly --ci --allow-privileged +ci
+      - name: Check formatting
+        run: test -z "$(gofmt -l .)"
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./...
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
