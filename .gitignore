@@ -16,6 +16,11 @@ build/
 *.o
 *.a
 
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
 # IDE
 .idea/
 .vscode/

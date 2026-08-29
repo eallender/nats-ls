@@ -98,6 +98,43 @@ Examples:
 
     args = parser.parse_args()
 
+    if args.fuzz_pool < 1:
+        parser.error("--fuzz-pool must be at least 1")
+    if args.fuzz_depth_min < 1:
+        parser.error("--fuzz-depth-min must be at least 1")
+    if args.fuzz_depth_min > args.fuzz_depth_max:
+        parser.error("--fuzz-depth-min must be less than or equal to --fuzz-depth-max")
+
+    publisher_counts = {
+        "--normal": args.normal,
+        "--js": args.js,
+        "--reqrep": args.reqrep,
+        "--kv": args.kv,
+        "--obj": args.obj,
+    }
+    for flag, count in publisher_counts.items():
+        if count < 0:
+            parser.error(f"{flag} must be non-negative")
+
+    positive_intervals = {
+        "--normal-interval": args.normal_interval,
+        "--js-interval": args.js_interval,
+        "--reqrep-interval": args.reqrep_interval,
+        "--reqrep-timeout": args.reqrep_timeout,
+        "--kv-interval": args.kv_interval,
+        "--obj-interval": args.obj_interval,
+    }
+    for flag, value in positive_intervals.items():
+        if value <= 0:
+            parser.error(f"{flag} must be greater than 0")
+
+    if args.stats_interval < 0:
+        parser.error("--stats-interval must be non-negative")
+    if args.msg_size < 0:
+        parser.error("--msg-size must be non-negative")
+    if args.obj_size < 0:
+        parser.error("--obj-size must be non-negative")
+
     if args.generate_config:
         return None, True
 
