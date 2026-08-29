@@ -53,7 +53,6 @@ func (v *Viewer) Watch(subject string) error {
 	var err error
 	v.sub, err = v.nc.Subscribe(subject, func(msg *nats.Msg) {
 		v.messages.Store(msg)
-		logger.Log.Debug("Message received", "subject", msg.Subject, "size", len(msg.Data))
 	})
 	if err != nil {
 		return err
@@ -119,7 +118,6 @@ func (v *Viewer) Resume() error {
 	var err error
 	v.sub, err = v.nc.Subscribe(v.pausedSubject, func(msg *nats.Msg) {
 		v.messages.Store(msg)
-		logger.Log.Debug("Message received", "subject", msg.Subject, "size", len(msg.Data))
 	})
 	if err != nil {
 		return err

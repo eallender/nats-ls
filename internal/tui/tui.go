@@ -5,7 +5,6 @@
 package tui
 
 import (
-	"context"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -119,10 +118,14 @@ func Run(config *config.Config) error {
 		logger.Log.Warn("Could not connect to NATS", "address", config.NatsAddress, "error", err)
 	} else {
 		viewer = monitor.NewViewer(nc, config.NatsViewerMessageLimit)
-		discovery = monitor.NewDiscovery(nc)
+		discovery = monitor.NewDiscovery(
+			nc,
+			config.NatsDiscoverySubjectLimit,
+			time.Duration(config.NatsDiscoverySubjectMaxAgeMinutes)*time.Minute,
+			time.Duration(config.NatsDiscoveryCleanupIntervalSeconds)*time.Second,
+		)
 
-		ctx := context.Background()
-		if err := discovery.Start(ctx, config.NatsDiscoveryPendingLimit, config.NatsDiscoveryStorageLimitMB); err != nil {
+		if err := discovery.Start(config.NatsDiscoveryPendingLimit, config.NatsDiscoveryStorageLimitMB); err != nil {
 			logger.Log.Warn("Failed to start discovery", "error", err)
 		}
 
