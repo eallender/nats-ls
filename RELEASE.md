@@ -21,6 +21,7 @@ Releases are triggered by pushing a version tag from `main`.
 3. The [Release workflow](.github/workflows/release.yml) picks up the tag push and runs [GoReleaser](https://goreleaser.com/), which:
    - Verifies the tagged commit is on `main`
    - Runs formatting, vet, and tests
+   - Builds the pinned Apache-2.0 [NATS CLI from the NATS Authors](https://github.com/nats-io/natscli) for each target and embeds it in the corresponding NLS binary
    - Builds binaries for all platforms, with the version baked in via `-ldflags`
    - Generates SHA256 checksums
    - Creates a GitHub release for the tag with grouped release notes (Features / Bug Fixes / Performance Improvements / Other Changes) generated from commits since the last tag, and the built binaries attached

@@ -8,6 +8,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/eallender/nats-ls/internal/natsshell"
 )
 
 // getBrowseAvailableLines calculates how many subject rows can be displayed
@@ -37,10 +38,22 @@ func (m Model) getBrowseAvailableLines() int {
 	return availableLines
 }
 
+type shellFinishedMsg struct{ err error }
+
 // Update implements tea.Model
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case shellFinishedMsg:
+		if msg.err != nil {
+			m.shellError = msg.err.Error()
+		}
 	case tea.KeyMsg:
+		m.shellError = ""
+		if msg.String() == "s" && !m.commandBarActive {
+			return m, tea.Exec(&natsshell.Session{Server: m.serverURL}, func(err error) tea.Msg {
+				return shellFinishedMsg{err: err}
+			})
+		}
 		// If command bar is active, handle its input
 		if m.commandBarActive {
 			switch msg.String() {
@@ -324,7 +337,7 @@ func (m Model) handleLogViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// Jump to bottom (most recent messages)
 		m.logScrollOffset = 0
 		m.logSelectedIndex = 0
-	case "s":
+	case "S":
 		// Toggle pause/resume autoscroll
 		if m.viewer != nil {
 			if m.viewer.IsPaused() {
@@ -400,7 +413,7 @@ func (m Model) handleMessageInspectKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.inspectScrollOffset = 0
 			}
 		}
-	case "s":
+	case "S":
 		// Toggle pause/resume
 		if m.viewer != nil {
 			if m.viewer.IsPaused() {

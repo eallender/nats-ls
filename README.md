@@ -32,6 +32,7 @@
 - **Subject filtering** - Quickly filter subjects to find what you're looking for
 - **Subject condensing** - Collapse hierarchical subjects for better overview
 - **Multiple view modes** - Switch between browse, inspect, and log views
+- **NATS shell** - Run the official NATS CLI in your interactive shell
 - **Configurable connection** - Connect to any NATS server with flexible configuration
 - **Lightweight and fast** - Built with Go and Bubble Tea for optimal performance
 
@@ -75,6 +76,20 @@ nls --generate-config
 - **Browse mode**: View and select subjects
 - **Inspect mode**: Examine individual messages in detail
 - **Log mode**: View application logs
+
+### NATS shell
+
+Press lowercase `s` from the subject browser, log view, or message inspector. NLS opens your interactive `$SHELL` (or `/bin/sh` when unset). Type `exit` or press Ctrl-D at the shell prompt to return to the same NLS view.
+
+The shell starts with `NATS_URL` set to the address configured in NLS. You can set another URL or use the NATS CLI's own server and context options. For example, on a JetStream-enabled server:
+
+```bash
+nats stream add ORDERS --subjects 'orders.>' --defaults
+nats pub orders.created '{"id":123}'
+nats stream info ORDERS
+```
+
+Linux and macOS release binaries include the NATS CLI. If you install NLS with `go install` or build it directly from source, install the [official NATS CLI](https://github.com/nats-io/natscli/releases) on your `PATH`.
 
 ## Configuration
 
