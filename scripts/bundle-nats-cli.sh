@@ -43,3 +43,5 @@ func init() {
 }
 GO
 done
+
+python3 scripts/release-notices.py "$module_dir" "$version" "$target_dir/THIRD_PARTY_NOTICES.txt" "$@"

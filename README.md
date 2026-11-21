@@ -48,7 +48,7 @@ The binary will be installed as `nls` in your `$GOPATH/bin` directory.
 
 ### Download Binary
 
-Download the latest release for your platform from the [releases page](https://github.com/eallender/nats-ls/releases).
+Download the `.tar.gz` release archive for your platform from the [releases page](https://github.com/eallender/nats-ls/releases) and extract it to get the `nls` executable.
 
 ## Quick Start
 

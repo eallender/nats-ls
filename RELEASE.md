@@ -23,19 +23,20 @@ Releases are triggered by pushing a version tag from `main`.
    - Runs formatting, vet, and tests
    - Builds the pinned Apache-2.0 [NATS CLI from the NATS Authors](https://github.com/nats-io/natscli) for each target and embeds it in the corresponding NLS binary
    - Builds binaries for all platforms, with the version baked in via `-ldflags`
+   - Packages each binary with `LICENSE` and `THIRD_PARTY_NOTICES.txt`, generated from the packages used to build NLS and the bundled CLI across all release targets
    - Generates SHA256 checksums
-   - Creates a GitHub release for the tag with grouped release notes (Features / Bug Fixes / Performance Improvements / Other Changes) generated from commits since the last tag, and the built binaries attached
+   - Creates a GitHub release for the tag with grouped release notes (Features / Bug Fixes / Performance Improvements / Other Changes) generated from commits since the last tag, and attaches the archives
 
 Conventional commit prefixes (`feat:`, `fix:`, `perf:`) are used by GoReleaser to group entries in the release notes; everything else lands under "Other Changes."
 
 ## Release Assets
 
 Each release includes:
-- `nls-linux-amd64` - Linux binary (AMD64)
-- `nls-linux-arm64` - Linux binary (ARM64)
-- `nls-darwin-amd64` - macOS binary (AMD64/Intel)
-- `nls-darwin-arm64` - macOS binary (ARM64/Apple Silicon)
-- `checksums.txt` - SHA256 checksums for all binaries
+- `nls-linux-amd64.tar.gz` - Linux (AMD64)
+- `nls-linux-arm64.tar.gz` - Linux (ARM64)
+- `nls-darwin-amd64.tar.gz` - macOS (AMD64/Intel)
+- `nls-darwin-arm64.tar.gz` - macOS (ARM64/Apple Silicon)
+- `checksums.txt` - SHA256 checksums for all archives
 
 ## Checking Release Status
 
