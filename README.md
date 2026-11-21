@@ -5,7 +5,6 @@
 </div>
 
 [![CI](https://github.com/eallender/nats-ls/actions/workflows/ci.yml/badge.svg)](https://github.com/eallender/nats-ls/actions/workflows/ci.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/eallender/nats-ls)](https://goreportcard.com/report/github.com/eallender/nats-ls)
 [![golangci](https://raw.githubusercontent.com/golangci/golangci-web/master/src/assets/images/badge_a_plus_flat.svg)](https://golangci.com/r/github.com/eallender/nats-ls)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/eallender/nats-ls/blob/main/LICENSE)
 
