@@ -6,6 +6,7 @@ package natsshell
 import (
 	"bytes"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -24,7 +25,7 @@ func TestSession(t *testing.T) {
 
 	oldBundle := bundledNATS
 	t.Cleanup(func() { bundledNATS = oldBundle })
-	for _, mode := range []string{"PATH", "bundled", "missing"} {
+	for _, mode := range []string{"PATH", "bundled", "fallback", "missing"} {
 		t.Run(mode, func(t *testing.T) {
 			path := t.TempDir()
 			tmp := t.TempDir()
@@ -32,9 +33,12 @@ func TestSession(t *testing.T) {
 			t.Setenv("TMPDIR", tmp)
 			bundledNATS = nil
 			switch mode {
-			case "PATH":
+			case "PATH", "fallback":
 				if err := os.WriteFile(filepath.Join(path, "nats"), []byte(fakeCLI), 0700); err != nil {
 					t.Fatal(err)
+				}
+				if mode == "fallback" {
+					bundledNATS = []byte("#!/nonexistent-interpreter\n")
 				}
 			case "bundled":
 				bundledNATS = []byte(fakeCLI)
@@ -60,11 +64,56 @@ func TestSession(t *testing.T) {
 			if !strings.Contains(output.String(), want) || !strings.Contains(output.String(), "shell is usable") {
 				t.Errorf("expected %q and a usable shell, got %q", want, output.String())
 			}
+			if mode == "fallback" && !strings.Contains(output.String(), "Bundled NATS CLI unavailable") {
+				t.Errorf("expected a bundled CLI diagnostic, got %q", output.String())
+			}
 			files, err := os.ReadDir(tmp)
 			if err != nil || len(files) != 0 {
 				t.Errorf("expected shell to remove its temporary files, got %v, %v", files, err)
 			}
 		})
+	}
+}
+
+func TestSessionBashResetsPath(t *testing.T) {
+	bash, err := exec.LookPath("bash")
+	if err != nil {
+		t.Skip("requires Bash")
+	}
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("SHELL", bash)
+	t.Setenv("TMPDIR", t.TempDir())
+	if err := os.WriteFile(filepath.Join(home, ".bashrc"), []byte("export PATH=/nonexistent\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	oldBundle := bundledNATS
+	t.Cleanup(func() { bundledNATS = oldBundle })
+	bundledNATS = []byte("#!/bin/sh\nprintf 'bundled CLI\\n'\n")
+
+	var output bytes.Buffer
+	session := Session{}
+	session.SetStdin(strings.NewReader("test \"$PATH\" = /nonexistent && \"$NLS_NATS_BIN\"\nexit\n"))
+	session.SetStdout(&output)
+	if err := session.Run(); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output.String(), "bundled CLI\n") {
+		t.Errorf("expected bundled CLI to run after Bash reset PATH, got %q", output.String())
+	}
+}
+
+func TestSessionDefaultStreams(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("requires a POSIX shell")
+	}
+	t.Setenv("SHELL", "/bin/sh")
+	t.Setenv("ENV", "")
+	session := Session{}
+	session.SetStdin(strings.NewReader("exit\n"))
+	if err := session.Run(); err != nil {
+		t.Fatal(err)
 	}
 }
 

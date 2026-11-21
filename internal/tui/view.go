@@ -9,9 +9,11 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+const pauseResumeKey = "p"
+
 // getPauseResumeLabel returns the key and label for pause/resume control
 func (m Model) getPauseResumeLabel() (key string, label string) {
-	key = "<S>"
+	key = "<" + pauseResumeKey + ">"
 	if m.viewer != nil && m.viewer.IsPaused() {
 		label = "resume"
 	} else {

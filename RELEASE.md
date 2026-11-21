@@ -29,6 +29,8 @@ Releases are triggered by pushing a version tag from `main`.
 
 Conventional commit prefixes (`feat:`, `fix:`, `perf:`) are used by GoReleaser to group entries in the release notes; everything else lands under "Other Changes."
 
+When preparing a release, review the NATS CLI pin in `scripts/bundle-nats-cli.sh`. Validate changes to the pin with CI, which builds all four release archives and exercises the packaged Linux AMD64 binary against JetStream.
+
 ## Release Assets
 
 Each release includes:

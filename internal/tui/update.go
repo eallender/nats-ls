@@ -337,7 +337,7 @@ func (m Model) handleLogViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// Jump to bottom (most recent messages)
 		m.logScrollOffset = 0
 		m.logSelectedIndex = 0
-	case "S":
+	case pauseResumeKey:
 		// Toggle pause/resume autoscroll
 		if m.viewer != nil {
 			if m.viewer.IsPaused() {
@@ -413,7 +413,7 @@ func (m Model) handleMessageInspectKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.inspectScrollOffset = 0
 			}
 		}
-	case "S":
+	case pauseResumeKey:
 		// Toggle pause/resume
 		if m.viewer != nil {
 			if m.viewer.IsPaused() {

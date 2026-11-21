@@ -76,6 +76,8 @@ nls --generate-config
 - **Inspect mode**: Examine individual messages in detail
 - **Log mode**: View application logs
 
+Press lowercase `p` to toggle pause and resume in the log view and message inspector.
+
 ### NATS shell
 
 Press lowercase `s` from the subject browser, log view, or message inspector. NLS opens your interactive `$SHELL` (or `/bin/sh` when unset). Type `exit` or press Ctrl-D at the shell prompt to return to the same NLS view.
@@ -89,6 +91,9 @@ nats stream info ORDERS
 ```
 
 Linux and macOS release binaries include the NATS CLI. If you install NLS with `go install` or build it directly from source, install the [official NATS CLI](https://github.com/nats-io/natscli/releases) on your `PATH`.
+
+If your shell startup files replace or reorder `PATH`, run `"$NLS_NATS_BIN" --help` to invoke the bundled CLI by its absolute path.
+If the temporary directory blocks execution, NLS opens the shell with your existing `PATH` and prints a diagnostic. Set `TMPDIR` before starting NLS to use a writable directory that allows execution.
 
 ## Configuration
 

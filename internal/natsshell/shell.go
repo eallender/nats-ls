@@ -38,28 +38,44 @@ func (s *Session) Run() error {
 	}
 	cmd := exec.Command(shellPath, "-i")
 
-	path := os.Getenv("PATH")
-	if len(bundledNATS) != 0 {
-		dir, err := os.MkdirTemp("", "nls-nats-")
-		if err != nil {
-			return fmt.Errorf("prepare bundled NATS CLI: %w", err)
-		}
-		defer func() { _ = os.RemoveAll(dir) }()
-		if err := os.WriteFile(filepath.Join(dir, "nats"), bundledNATS, 0700); err != nil {
-			return fmt.Errorf("prepare bundled NATS CLI: %w", err)
-		}
-		if path != "" {
-			path = dir + string(os.PathListSeparator) + path
-		} else {
-			path = dir
-		}
-	} else if _, err := exec.LookPath("nats"); err != nil {
-		_, _ = fmt.Fprintln(s.stdout, "NATS CLI unavailable on PATH. Install it from https://github.com/nats-io/natscli/releases.")
+	stdin, stdout, stderr := s.stdin, s.stdout, s.stderr
+	if stdin == nil {
+		stdin = os.Stdin
+	}
+	if stdout == nil {
+		stdout = os.Stdout
+	}
+	if stderr == nil {
+		stderr = os.Stderr
 	}
 
-	_, _ = fmt.Fprintln(s.stdout, "NLS shell · Run nats --help to see commands · Type exit to return to NLS")
-	cmd.Env = append(os.Environ(), "NATS_URL="+s.Server, "PATH="+path)
-	cmd.Stdin, cmd.Stdout, cmd.Stderr = s.stdin, s.stdout, s.stderr
+	path := os.Getenv("PATH")
+	var binary string
+	if len(bundledNATS) != 0 {
+		dir, err := os.MkdirTemp("", "nls-nats-")
+		if err == nil {
+			defer func() { _ = os.RemoveAll(dir) }()
+			binary, err = prepareCLI(dir)
+		}
+		if err != nil {
+			_, _ = fmt.Fprintf(stderr, "Bundled NATS CLI unavailable: %v. Use an installed NATS CLI or set TMPDIR to a writable directory that allows execution.\n", err)
+		} else {
+			if path != "" {
+				path = filepath.Dir(binary) + string(os.PathListSeparator) + path
+			} else {
+				path = filepath.Dir(binary)
+			}
+		}
+	}
+	if binary == "" {
+		if _, err := exec.LookPath("nats"); err != nil {
+			_, _ = fmt.Fprintln(stdout, "NATS CLI unavailable on PATH. Install it from https://github.com/nats-io/natscli/releases.")
+		}
+	}
+
+	_, _ = fmt.Fprintln(stdout, "NLS shell · Run nats --help to see commands · Type exit to return to NLS")
+	cmd.Env = append(os.Environ(), "NATS_URL="+s.Server, "PATH="+path, "NLS_NATS_BIN="+binary)
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = stdin, stdout, stderr
 	err = cmd.Run()
 	var exitErr *exec.ExitError
 	if errors.As(err, &exitErr) {
@@ -67,4 +83,19 @@ func (s *Session) Run() error {
 		return nil
 	}
 	return err
+}
+
+func prepareCLI(dir string) (string, error) {
+	binary, err := filepath.Abs(filepath.Join(dir, "nats"))
+	if err != nil {
+		return "", err
+	}
+	if err := os.WriteFile(binary, bundledNATS, 0700); err != nil {
+		return "", err
+	}
+	// Starting the binary detects noexec mounts even when its mode allows execution.
+	if err := exec.Command(binary, "--version").Run(); err != nil {
+		return "", err
+	}
+	return binary, nil
 }
