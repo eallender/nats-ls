@@ -9,9 +9,11 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+const pauseResumeKey = "p"
+
 // getPauseResumeLabel returns the key and label for pause/resume control
 func (m Model) getPauseResumeLabel() (key string, label string) {
-	key = "<s>"
+	key = "<" + pauseResumeKey + ">"
 	if m.viewer != nil && m.viewer.IsPaused() {
 		label = "resume"
 	} else {
@@ -39,6 +41,9 @@ func (m Model) View() string {
 	headerHeight := lipgloss.Height(header)
 	commandBarHeight := lipgloss.Height(commandBar)
 	contentHeight := m.height - headerHeight - commandBarHeight - 1 // Reduce by 1 to prevent header overflow
+	if m.shellError != "" {
+		contentHeight--
+	}
 
 	// When command bar is active, header is 1 line shorter, so reduce content by 1 to maintain same size
 	if m.commandBarActive {
@@ -65,6 +70,9 @@ func (m Model) View() string {
 	if m.commandBarActive {
 		return lipgloss.JoinVertical(lipgloss.Left, header, commandBar, content)
 	}
+	if m.shellError != "" {
+		return lipgloss.JoinVertical(lipgloss.Left, header, lipgloss.NewStyle().MaxWidth(m.width).Render("Shell: "+m.shellError), content)
+	}
 	return lipgloss.JoinVertical(lipgloss.Left, header, content)
 }
 
@@ -78,7 +86,7 @@ func (m Model) renderHeader() string {
 		} else {
 			status = HeaderDisconnectedStyle.Render(status)
 		}
-		simpleHeader := fmt.Sprintf("NLS %s | q:quit", status)
+		simpleHeader := fmt.Sprintf("NLS %s | s:shell q:quit", status)
 		return HeaderContainerStyle.
 			Width(m.width).
 			Padding(0, 1).
@@ -158,6 +166,7 @@ func (m Model) renderHeader() string {
 				"",
 				"<g/G>",
 				pauseKey,
+				"<s>",
 				"<q>",
 			))
 
@@ -166,6 +175,7 @@ func (m Model) renderHeader() string {
 			"",
 			"top/bottom",
 			pauseLabel,
+			"shell",
 			"quit",
 		))
 	case ViewModeLog:
@@ -195,6 +205,7 @@ func (m Model) renderHeader() string {
 				"",
 				"<g/G>",
 				pauseKey,
+				"<s>",
 				"<q>",
 			))
 
@@ -203,6 +214,7 @@ func (m Model) renderHeader() string {
 			"",
 			"top/bottom",
 			pauseLabel,
+			"shell",
 			"quit",
 		))
 	default:
@@ -230,6 +242,7 @@ func (m Model) renderHeader() string {
 				"",
 				"<l>",
 				"<:>",
+				"<s>",
 				"<q>",
 			))
 
@@ -238,6 +251,7 @@ func (m Model) renderHeader() string {
 			"",
 			"logs",
 			"filter",
+			"shell",
 			"quit",
 		))
 	}

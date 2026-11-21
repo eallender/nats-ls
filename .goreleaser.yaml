@@ -13,8 +13,12 @@ builds:
 
 archives:
   - id: nls
-    formats: [binary]
+    formats: [tar.gz]
     name_template: "nls-{{ .Os }}-{{ .Arch }}"
+    files:
+      - LICENSE
+      - src: internal/natsshell/bundle/THIRD_PARTY_NOTICES.txt
+        strip_parent: true
 
 checksum:
   name_template: "checksums.txt"

@@ -5,7 +5,6 @@
 </div>
 
 [![CI](https://github.com/eallender/nats-ls/actions/workflows/ci.yml/badge.svg)](https://github.com/eallender/nats-ls/actions/workflows/ci.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/eallender/nats-ls)](https://goreportcard.com/report/github.com/eallender/nats-ls)
 [![golangci](https://raw.githubusercontent.com/golangci/golangci-web/master/src/assets/images/badge_a_plus_flat.svg)](https://golangci.com/r/github.com/eallender/nats-ls)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/eallender/nats-ls/blob/main/LICENSE)
 
@@ -32,6 +31,7 @@
 - **Subject filtering** - Quickly filter subjects to find what you're looking for
 - **Subject condensing** - Collapse hierarchical subjects for better overview
 - **Multiple view modes** - Switch between browse, inspect, and log views
+- **NATS shell** - Run the official NATS CLI in your interactive shell
 - **Configurable connection** - Connect to any NATS server with flexible configuration
 - **Lightweight and fast** - Built with Go and Bubble Tea for optimal performance
 
@@ -47,7 +47,7 @@ The binary will be installed as `nls` in your `$GOPATH/bin` directory.
 
 ### Download Binary
 
-Download the latest release for your platform from the [releases page](https://github.com/eallender/nats-ls/releases).
+Download the `.tar.gz` release archive for your platform from the [releases page](https://github.com/eallender/nats-ls/releases) and extract it to get the `nls` executable.
 
 ## Quick Start
 
@@ -75,6 +75,25 @@ nls --generate-config
 - **Browse mode**: View and select subjects
 - **Inspect mode**: Examine individual messages in detail
 - **Log mode**: View application logs
+
+Press lowercase `p` to toggle pause and resume in the log view and message inspector.
+
+### NATS shell
+
+Press lowercase `s` from the subject browser, log view, or message inspector. NLS opens your interactive `$SHELL` (or `/bin/sh` when unset). Type `exit` or press Ctrl-D at the shell prompt to return to the same NLS view.
+
+The shell starts with `NATS_URL` set to the address configured in NLS. You can set another URL or use the NATS CLI's own server and context options. For example, on a JetStream-enabled server:
+
+```bash
+nats stream add ORDERS --subjects 'orders.>' --defaults
+nats pub orders.created '{"id":123}'
+nats stream info ORDERS
+```
+
+Linux and macOS release binaries include the NATS CLI. If you install NLS with `go install` or build it directly from source, install the [official NATS CLI](https://github.com/nats-io/natscli/releases) on your `PATH`.
+
+If your shell startup files replace or reorder `PATH`, run `"$NLS_NATS_BIN" --help` to invoke the bundled CLI by its absolute path.
+If the temporary directory blocks execution, NLS opens the shell with your existing `PATH` and prints a diagnostic. Set `TMPDIR` before starting NLS to use a writable directory that allows execution.
 
 ## Configuration
 

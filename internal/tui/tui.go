@@ -25,9 +25,10 @@ const (
 
 // Model represents the application state
 type Model struct {
-	width    int
-	height   int
-	quitting bool
+	width      int
+	height     int
+	quitting   bool
+	shellError string
 
 	// Connection state
 	nc                   *nats.Conn
